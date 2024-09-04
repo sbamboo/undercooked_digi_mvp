@@ -523,5 +523,7 @@ function handleSelection(choiceIndex,skipBroadcast=false) {
 
 // Function to handle action sent by client 
 function handleAction(parsedData) {
-
+    // parsedData is the Object sent to the server
+    // ´parsedData.event´ should always be `action`
+    // `parsedData.`
 }
