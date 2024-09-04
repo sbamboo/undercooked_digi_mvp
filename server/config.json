@@ -1,4 +1,6 @@
 {
+    "port": 3000,
+    "host": "172.0.0.1",
     "gameState": {
         "_msg_": "Message from config file!"
     }
