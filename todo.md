@@ -1,0 +1,2 @@
+- Modability by allowing the client to upload a js file and inject into client.
+- Option to send assets in handshake

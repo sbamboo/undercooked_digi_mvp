@@ -1,0 +1,63 @@
+* {
+    border: none;
+    padding: 0;
+    margin: 0;
+}
+
+.hflex {
+    display: flex;
+    flex-direction: row;
+}
+.vflex {
+    display: flex;
+    flex-direction: column;
+}
+.vcenter {
+    display: flex;
+    justify-content: center;
+}
+.hcenter {
+    display: flex;
+    align-items: center;
+}
+
+section {
+    width: 100%;
+    height: 100vh;
+}
+
+#connect-scene {
+    display: none;
+}
+
+#menu-scene {
+    display: none;
+}
+
+#game {
+    display: none;
+}
+
+#connect-box {
+    height: 85%;
+}
+
+#serverAddress,#reqName {
+    border: 1px solid black;
+    margin-right: 10px;
+    margin-left: 5px;
+}
+
+#connect-error {
+    color: red;
+}
+
+#response {
+    width: 100%;
+    box-sizing: border-box;
+    white-space: pre-wrap; /* Ensure JSON data retains its formatting */
+    overflow-wrap: break-word; /* Handle long words gracefully */
+    font-family: monospace; /* Use a monospace font for code */
+    border: 1px solid #ddd; /* Add a border for better visibility */
+    padding: 10px; /* Add padding for readability */
+  }
