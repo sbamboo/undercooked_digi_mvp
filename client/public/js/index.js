@@ -9,10 +9,19 @@ const protocolformat = 1;
 
 var registry = {
     "cards": {
+        0: {
+            
+        }
     },
     "recipes": {
+        0:{
+
+        }
     },
     "actions": {
+        0:{
+            
+        }
     }
 }
 
