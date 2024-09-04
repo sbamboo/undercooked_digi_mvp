@@ -42,7 +42,7 @@ let config = {
     "playerData_template": {
         "status": "inactive",
         "name": "player",
-        "hand": [],
+        "hand": [0],
         "recipe": {},
         "points": 0,
         "_dox_": null,

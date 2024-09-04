@@ -7,6 +7,15 @@
 
 const protocolformat = 1;
 
+var registry = {
+    "cards": {
+    },
+    "recipes": {
+    },
+    "actions": {
+    }
+}
+
 class Scene {
     constructor(container,errorMethod,msgMethod){
         this.container = container;
