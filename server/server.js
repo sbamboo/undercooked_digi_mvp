@@ -6,7 +6,7 @@
 
 // Server Config (defaults, may be changed via a config.json file in the same directory)
 const default_port = 3000;
-const default_host = "172.20.10.9";
+const default_host = "192.168.39.188";
 const default_tickRate = 5000; // Delay in ms
 const configFile = './config.json';
 
@@ -428,6 +428,11 @@ wss.on('connection', (ws, req) => {
             else if (parsedData.event === 'stop') {
                 handleStop(); // DEFINED AT BOTTOM OF FILE
             }
+
+            //// Action event
+            else if (parsedData.event === 'action') {
+                handleAction(parsedData); // DEFINED AT BOTTOM OF FILE
+            }
             
             //// Fallback
             else {
@@ -514,4 +519,9 @@ function handleSelection(choiceIndex,skipBroadcast=false) {
     if (skipBroadcast !== true) {
         broadcastGameState();
     }
+}
+
+// Function to handle action sent by client 
+function handleAction(parsedData) {
+
 }
