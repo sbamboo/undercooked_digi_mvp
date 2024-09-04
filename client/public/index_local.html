@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Undercooked - Demo</title>
+    <link rel="stylesheet" href="./css/index.css">
+    <script src="./js/index.js"></script>
+    <!-- Include highlight.js CSS for syntax highlighting -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/default.min.css">
+    <!-- Include highlight.js JS for syntax highlighting -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/highlight.min.js"></script>
+</head>
+<body>
+    <section id="connect-scene">
+        <div id="connect-box" class="vflex vcenter hcenter">
+            <div class="hflex">
+                <label for="reqName">Username:</label>
+                <input type="text" id="reqName" required>
+            </div>
+            <div class="hflex">
+                <label for="serverAddress">Adress:</label>
+                <input type="text" id="serverAddress" required>
+                <button id="reconnectButton">Connect</button>
+            </div>
+            <p id="connect-error"></p>
+        </div>
+    </section>
+    <section id="menu-scene">
+        <div id="menu-box" class="vflex vcenter hcenter">
+            <div class="hflex">
+                <h2 id="game-state-label">Game is: </h2>
+                <h2 id="game-state"></h2>
+            </div>
+            <div id="playerList">
+                <h2>Player List</h2>
+                <ul id="players"></ul>
+            </div>
+            <button id="menuDisconnectButton">Disconnect</button>
+            <button id="startButton">Start</button>
+            <p id="menu-error"></p>
+        </div>
+    </section>
+    <section id="game-scene">
+        <button id="gameDisconnectButton">Disconnect</button>
+        <button id="gameStopButton">Stop Game</button>
+        <p id="game-error"></p>
+        <div class="vflex">
+            <label for="response">Last Response:</label>
+            <pre id="response"></pre>
+        </div>
+    </section>
+</body>
+</html>
