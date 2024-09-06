@@ -531,7 +531,7 @@ if (parts[parts.length - 1].includes(":")) {
 // Function to post a choice of cards (cards will be sent to client)
 // Returns the playerid and the choiceid as a list. => [playerid,choiceid]
 // Note! This function does not broadcast and `posted` will be index of last broadcast!
-function postChoice(playerid,listOfCardIds,hidden) {
+function postChoice(playerid,listOfCardIds,hidden=false) {
     const timestamp = Date.now();
     const id = timestamp.toString();
     gameState["choices"][playerid] = {
@@ -560,7 +560,7 @@ function postChoiceAmnt(playerid,amntOfCards) {
     };
     return [playerid,id];
 }
-// Function to "de-list" / remove al choices from a player
+// Function to "de-list"/remove al choices from a player
 // returns the list of choices if playerid was found else null.
 function delistChoicesForPlayer(playerid) {
     if (Object.keys(gameState["choices"]).includes(playerid)) {
@@ -570,7 +570,7 @@ function delistChoicesForPlayer(playerid) {
     }
     return null;
 }
-// Function to "de-list" a specific choice.
+// Function to "de-list" a specific choice given it's id.
 // returns the list of choices if playerid was found else null.
 function delistChoice(choiceid) {
     for (const [playerid,playersChoices] of Object.entries(gameState["choices"])) {
@@ -617,8 +617,11 @@ function handleSelection(choiceIndex,skipBroadcast=false) {
 // Function to handle action sent by client 
 function handleAction(parsedData) {
     // parsedData is the Object sent to the server
+    //
     // ´parsedData.event´ should always be 'action'
+    //
     // `parsedData.cardIndex` should be the `cardIndex` used to invoke the action.
+    //
     // `parsedData.affected` should be a list of the targets of the effects,
     //    where the string "*" means everyone and the string "!<pid>" is everyone
     //    except a sertain player, "<pid>" would be a specific player.
