@@ -26,6 +26,8 @@ let config = {
     "unknownRecipientSendMode": "None", // "None" or "All"
     "disconnectEventHandlerMode": "client", // "Client" or "PlayerId"
     "keepAliveWsOnDisconnectEvent": false,
+    "resetGameStateOnStop": true,
+    "resetGameStateOnLoopStop": false,
     "handShakeInfo": {},
     "gameState": {
         "format": 1,
@@ -61,6 +63,7 @@ let config = {
         "emptyMsgFilter": ["_msg_"]
     }
 };
+//#region setup
 // Load config
 if (fs.existsSync(configFile)) {
     const configFile_content = fs.readFileSync(configFile);
@@ -72,6 +75,7 @@ if (fs.existsSync(configFile)) {
 // Object to store the setInterval linker for the tick calls.
 let tickIntervalObj;
 let broadcastIndex = config["startingBroadcastIndex"];
+let gameRestartsIndex = 0;
 
 // Prep GameState
 const defaultGameState = { ...config["gameState"] };
@@ -79,6 +83,7 @@ let gameState = { ...config["gameState"] };
 
 // Create a WebSocket server
 const wss = new WebSocket.Server({ host: config["host"], port: config["port"] });
+//#endregion setup
 
 // [Functions]
 //#region helperFunctions
@@ -188,7 +193,11 @@ function keyfilterlist(list,filterkey) {
         });
         return toret;
     } else {
-        return list[filterkey];
+        if (list.includes(filterkey)) {
+            return [filterkey];
+        } else {
+            return [];
+        }
     }
 }
 function keyfilterlist_multiple(list,filterkeys) {
@@ -204,12 +213,7 @@ function keyfilterlist_multiple(list,filterkeys) {
 }
 //#endregion helperFunctions
 
-// Function to reset the gameState
-function resetGameState() {
-    gameState = { ...defaultGameState };
-}
-
-//#region ServerStuff
+//#region serverStuff
 
 // Function to broadcast the gameState to every connected player/client.
 // override_recipient is a playerid, if null it will match to the client.
@@ -240,6 +244,7 @@ function broadcastGameState(override_recipient=null,isConnectAnswer=false) {
         localGameState["_req"] = {
             "timestamp": timestamp.toString(),
             "index": broadcastIndex,
+            "restarts": gameRestartsIndex
         }
         if (recipient != null) {
             localGameState["_req"]["recipient"] = recipient;
@@ -299,6 +304,9 @@ function stopBroadcastLoop() {
     if (tickIntervalObj) {
         clearInterval(tickIntervalObj);
         tickIntervalObj = null;
+        if (config["resetGameStateOnLoopStop"]) {
+            resetGameState();
+        }
         log("Stopping loop! (no clients)", "loop");
     }
 }
@@ -425,7 +433,11 @@ wss.on('connection', (ws, req) => {
 
             //// Disconnect Event
             else if (parsedData.event === "disconnect") {
-                log(`Disconenct event received from ${senderIp}.`, "route",1);
+                if (parsedData["_DEV_keepAlive"] !== true) {
+                    log(`Disconnect event received from ${senderIp}.`, "route",1);
+                } else {
+                    log(`Disconnect event received from ${senderIp}, with dev.keepalive!`, "route",1);
+                }
                 // Disconnect using client
                 if (config["disconnectEventHandlerMode"].toLowerCase() === "client") {
                     handleDisconnectionByClient(senderIp,ws,"remove");
@@ -446,14 +458,14 @@ wss.on('connection', (ws, req) => {
                     handleDisconnectionByPlayerId(senderIp,playerid,"remove");
                 }
                 // Close Websocket
-                if (config["keepAliveWsOnDisconnectEvent"] !== true) {
+                if (config["keepAliveWsOnDisconnectEvent"] !== true && parsedData["_DEV_keepAlive"] !== true) {
                     ws.close();
                 }
             }
 
             //// Select event
             else if (parsedData.event === 'select') {
-                if (typeof parsedData.choiceIndex === 'number') {
+                if (!isNaN(parsedData.choiceIndex) && parsedData.choiceIndex.trim() !== '') {
                     handleSelection(parsedData.choiceIndex); // DEFINED AT BOTTOM OF FILE
                 } else {
                     ws.send(JSON.stringify({ error: 'Invalid choiceIndex' }));
@@ -512,7 +524,7 @@ wss.on('connection', (ws, req) => {
     });
 });
 
-//#endregion ServerStuff
+//#endregion serverStuff
 
 // [Log address]
 if (config["host"].toLowerCase().trimStart().startsWith("ws://")) {
@@ -532,6 +544,11 @@ if (parts[parts.length - 1].includes(":")) {
 
 
 // [Main GameHost Logic Bellow]
+
+// Function to reset the gameState
+function resetGameState() {
+    gameState = { ...defaultGameState };
+}
 
 // Function to post a choice of cards (cards will be sent to client)
 // Returns the playerid and the choiceid as a list. => [playerid,choiceid]
@@ -590,6 +607,7 @@ function delistChoice(choiceid) {
 
 // Main tick function
 function tick() {
+    gameRestartsIndex++;
     broadcastGameState();
 }
 
@@ -606,6 +624,9 @@ function handleStart(skipBroadcast=false) {
 function handleStop(skipBroadcast=false) {
     log("Stopped game!");
     gameState.state = "idle";
+    if (config["resetGameStateOnStop"]) {
+        resetGameState();
+    }
     if (skipBroadcast !== true) {
         broadcastGameState();
     }
@@ -625,11 +646,11 @@ function handleAction(parsedData) {
     //
     // ´parsedData.event´ should always be 'action'
     //
-    // `parsedData.cardIndex` should be the `cardIndex` used to invoke the action.
+    // `parsedData.cardId` should be the `cardId` used to invoke the action.
     //
     // `parsedData.affected` should be a list of the targets of the effects,
     //    where the string "*" means everyone and the string "!<playerid>" is everyone
-    //    except a sertain player, "<pid>" would be a specific player.
+    //    except a sertain player, "<playerids>" would be a specific player.
     //    The `keyfilterlist(<list>,<filterStr>)` function takes one string and returns
     //      the list entries selected by that key.
     //    To quickely filter the entire `parsedData.affected` list, one can call
@@ -640,4 +661,6 @@ function handleAction(parsedData) {
     //      and the filters   ['!two']
     //      Should return     ['three','one'] 
     //
+    const affectedPlayers = keyfilterlist_multiple( Object.keys(gameState["data"]), parsedData.affects );
+    log(`Got action event with cardid '${parsedData.cardId}' which tagets [${parsedData.affects}] affecting [${affectedPlayers}]!`)
 }

@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>WebSocket Client</title>
+  <!-- Include highlight.js CSS for syntax highlighting -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/default.min.css">
+  <style>
+    .hflex {
+      display: flex;
+      flex-direction: row;
+    }
+    .vflex {
+      display: flex;
+      flex-direction: column;
+    }
+    #response {
+      width: 100%;
+      box-sizing: border-box;
+      white-space: pre-wrap; /* Ensure JSON data retains its formatting */
+      overflow-wrap: break-word; /* Handle long words gracefully */
+      font-family: monospace; /* Use a monospace font for code */
+      border: 1px solid #ddd; /* Add a border for better visibility */
+      padding: 10px; /* Add padding for readability */
+    }
+    button {
+      margin-top: 10px;
+      margin-right: 5px;
+    }
+    #playerList {
+      margin-top: 20px;
+    }
+    #playerList ul {
+      list-style-type: none; /* Remove default list styling */
+      padding: 0; /* Remove default padding */
+    }
+    #playerList li {
+      margin-bottom: 5px; /* Add space between list items */
+    }
+    #stateBox {
+      margin-top: 20px;
+    }
+    #stateBox input {
+      width: 100%;
+      box-sizing: border-box;
+    }
+    #serverBox {
+      margin-top: 20px;
+    }
+    #serverBox input {
+      width: 80%;
+      box-sizing: border-box;
+    }
+    button {
+      width: fit-content;
+      margin-bottom: 40px;
+    }
+    label {
+      margin-right: 5px;
+    }
+  </style>
+</head>
+<body>
+  <h1>WebSocket Client</h1>
+
+  <!-- Add a container to display the prettified JSON response -->
+  <label for="response">Last Response: </label>
+  <pre id="response"></pre>
+
+  <!-- Add text box for server address and a reconnect button -->
+  <div id="serverBox" class="vflex">
+    <div class="hflex">
+      <label for="username">Username: </label>
+      <input type="text" id="username">
+    </div>
+    <div class="hflex">
+      <label for="serverAddress">Server Address: </label>
+      <input type="text" id="serverAddress">
+    </div>
+    <button id="reconnectButton">Send.Event.Connect </button>
+  </div>
+
+  <!-- Add buttons to send events -->
+  <div id="eventsBox" class="vflex">
+    <div class="hflex">
+      <label for="event_select_choiceindex">Select.ChoiceIndex: </label>
+      <input type="text" id="event_select_choiceindex">
+    </div>
+    <button id="selectButton">Send.Event.Select</button>
+    <div class="hflex">
+      <label for="event_action_cardid">Action.CardId: </label>
+      <input type="text" id="event_action_cardid">
+    </div>
+    <div class="hflex">
+      <label for="event_action_affects">Action.Affects (Split by ;): </label>
+      <input type="text" id="event_action_affects">
+    </div>
+      <button id="actionButton">Send.Event.Action</button>
+    </div>
+    <label for="state">State: </label>
+    <input type="text" id="state" readonly disabled>
+    <div class="hflex">
+      <button id="startButton">Send.Event.Start</button>
+      <button id="stopButton">Send.Event.Stop</button>
+    </div>
+  </div>
+
+  <!-- Add a button to send a disconnect event -->
+  <div class="hflex">
+    <label for="keepalive">KeepAlive: </label>
+    <input type="checkbox" id="keepalive">
+  </div>
+  <button id="disconnectButton">Send.Event.Disconnect</button>
+
+  <!-- Add a section for the player list -->
+  <div id="playerList">
+    <h2>Player List</h2>
+    <ul id="players"></ul>
+  </div>
+
+  <!-- Include highlight.js JS for syntax highlighting -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/highlight.min.js"></script>
+  <script>
+    let socket;
+
+    // Function to initialize or reconnect the WebSocket connection
+    function connectWebSocket() {
+      const serverAddress = document.getElementById('serverAddress').value;
+      socket = new WebSocket(serverAddress);
+
+      // Get the container elements
+      const responseContainer = document.getElementById('response');
+      const disconnectButton = document.getElementById('disconnectButton');
+      const playersList = document.getElementById('players');
+      const stateTextBox = document.getElementById('state');
+
+      // Function to format JSON and apply syntax highlighting
+      function formatJSON(json) {
+        const jsonString = JSON.stringify(json, null, 2);
+        return `<code class="json">${jsonString}</code>`;
+      }
+
+      // Function to update the player list
+      function updatePlayerList(players) {
+        // Clear the existing list
+        playersList.innerHTML = '';
+
+        // Populate the list with new data
+        for (const [playerId, playerData] of Object.entries(players)) {
+          const listItem = document.createElement('li');
+          listItem.textContent = `${playerData.name} (${playerId})`;
+          playersList.appendChild(listItem);
+        }
+      }
+
+      // Function to update the state text box
+      function updateState(state) {
+        stateTextBox.value = state || 'No state available';
+      }
+
+      // When the connection is established
+      socket.onopen = () => {
+        console.log('Connected to WebSocket server');
+
+        // Send a "connect" event without a username
+        const data = { event: 'connect' };
+        const currentUsernameValue = document.getElementById("username").value;
+        let reqname = null;
+        if (currentUsernameValue != undefined && currentUsernameValue != null && currentUsernameValue !== "") {
+          reqname = currentUsernameValue;
+        }
+        if (reqname != null) {
+          data["reqname"] = reqname + " [DEV]";
+        } else {
+          data["reqname"] = "player [DEV]";
+        }
+        const connectMessage = JSON.stringify(data);
+        socket.send(connectMessage);
+        console.log('Sent connect event with dev username');
+      };
+
+      // When a message is received from the server
+      socket.onmessage = (event) => {
+        console.log('Message from server:', event.data);
+
+        try {
+          // Parse the JSON data
+          const jsonData = JSON.parse(event.data);
+          // Format and display the JSON data with syntax highlighting
+          responseContainer.innerHTML = formatJSON(jsonData);
+          // Reinitialize highlight.js to apply syntax highlighting
+          hljs.highlightElement(responseContainer.querySelector('code'));
+
+          // Update the player list if 'data' key exists
+          if (jsonData.data) {
+            updatePlayerList(jsonData.data);
+          }
+
+          // Update the state text box if 'state' key exists
+          if (jsonData.state) {
+            updateState(jsonData.state);
+          }
+        } catch (error) {
+          console.error('Failed to parse JSON:', error);
+          responseContainer.textContent = 'Error parsing JSON data.';
+        }
+      };
+
+      // When the connection is closed
+      socket.onclose = () => {
+        console.log('Disconnected from WebSocket server');
+      };
+
+      // When an error occurs
+      socket.onerror = (error) => {
+        console.error('WebSocket error:', error);
+      };
+    }
+
+    // Initialize the WebSocket connection when the page loads
+    function initializeServerAddress() {
+      const currentURL = new URL(window.location.href);
+      currentURL.protocol = 'ws:';
+      currentURL.port = '3000';
+      const defaultAddress = currentURL.toString();
+      document.getElementById('serverAddress').value = defaultAddress;
+    }
+
+    // Call initializeServerAddress to set the default value
+    initializeServerAddress();
+
+    // Connect to the WebSocket server using the initial address
+    connectWebSocket();
+
+    // Add click event listener to the start button
+    document.getElementById('startButton').addEventListener('click', () => {
+      if (socket.readyState === WebSocket.OPEN) {
+        // Send a "start" event
+        const startMessage = JSON.stringify({ event: 'start' });
+        socket.send(startMessage);
+        console.log('Sent start event');
+      } else {
+        console.log('WebSocket is not open. Unable to send start event.');
+      }
+    });
+
+    // Add click event listener to the stop button
+    document.getElementById('stopButton').addEventListener('click', () => {
+      if (socket.readyState === WebSocket.OPEN) {
+        // Send a "stop" event
+        const stopMessage = JSON.stringify({ event: 'stop' });
+        socket.send(stopMessage);
+        console.log('Sent stop event');
+      } else {
+        console.log('WebSocket is not open. Unable to send stop event.');
+      }
+    });
+
+    // Add click event listener to the disconnect button
+    document.getElementById('disconnectButton').addEventListener('click', () => {
+      if (socket.readyState === WebSocket.OPEN) {
+        // Send a "disconnect" event
+        const data = { event: 'disconnect' };
+        if (document.getElementById("keepalive").checked === true) {
+          data["_DEV_keepAlive"] = true;
+        }
+        const disconnectMessage = JSON.stringify(data);
+        socket.send(disconnectMessage);
+        if (document.getElementById("keepalive").checked === true) {
+          console.log('Sent disconnect event with keepalive.');
+        } else {
+          console.log('Sent disconnect event');
+        }
+        // Optionally close the WebSocket connection after sending the event
+        socket.close();
+      } else {
+        console.log('WebSocket is not open. Unable to send disconnect event.');
+      }
+    });
+
+    // Add click event listener to the reconnect button
+    document.getElementById('reconnectButton').addEventListener('click', () => {
+      if (socket.readyState === WebSocket.OPEN || socket.readyState === WebSocket.CONNECTING) {
+        socket.close(); // Close the existing connection
+      }
+      connectWebSocket(); // Reconnect to the WebSocket server
+    });
+
+    // Add click event listener to the select button
+    document.getElementById('selectButton').addEventListener('click', () => {
+      const data = {
+        "event": "select",
+        "choiceIndex": document.getElementById('event_select_choiceindex').value
+      };
+      const connectMessage = JSON.stringify(data);
+      socket.send(connectMessage);
+    });
+
+    // Add click event listener to the action button
+    document.getElementById('actionButton').addEventListener('click', () => {
+      const data = {
+        "event": "action",
+        "cardId": document.getElementById('event_action_cardid').value,
+        "affects": document.getElementById('event_action_affects').value.replace(" ","").split(";"),
+      };
+      const connectMessage = JSON.stringify(data);
+      socket.send(connectMessage);
+      console.log(`Sent action ${document.getElementById('event_action_cardid').value} for ${document.getElementById('event_action_affects').value.replace(" ","").split(";")}`)
+    });
+  </script>
+</body>
+</html>
