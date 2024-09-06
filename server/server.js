@@ -81,7 +81,7 @@ let gameState = { ...config["gameState"] };
 const wss = new WebSocket.Server({ host: config["host"], port: config["port"] });
 
 // [Functions]
-
+//#region helperFunctions
 function deepMerge(target, source) {
     // Iterate through each property in the source object
     for (const key of Object.keys(source)) {
@@ -202,11 +202,14 @@ function keyfilterlist_multiple(list,filterkeys) {
     } );
     return toret;
 }
+//#endregion helperFunctions
 
 // Function to reset the gameState
 function resetGameState() {
     gameState = { ...defaultGameState };
 }
+
+//#region ServerStuff
 
 // Function to broadcast the gameState to every connected player/client.
 // override_recipient is a playerid, if null it will match to the client.
@@ -508,6 +511,8 @@ wss.on('connection', (ws, req) => {
         }
     });
 });
+
+//#endregion ServerStuff
 
 // [Log address]
 if (config["host"].toLowerCase().trimStart().startsWith("ws://")) {
