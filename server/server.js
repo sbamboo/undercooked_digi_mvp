@@ -628,7 +628,7 @@ function handleAction(parsedData) {
     // `parsedData.cardIndex` should be the `cardIndex` used to invoke the action.
     //
     // `parsedData.affected` should be a list of the targets of the effects,
-    //    where the string "*" means everyone and the string "!<pid>" is everyone
+    //    where the string "*" means everyone and the string "!<playerid>" is everyone
     //    except a sertain player, "<pid>" would be a specific player.
     //    The `keyfilterlist(<list>,<filterStr>)` function takes one string and returns
     //      the list entries selected by that key.
