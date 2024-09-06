@@ -3,8 +3,23 @@ const http = require('http');
 const fs = require('fs');
 const path = require('path');
 
-const hostname = 'localhost';
-const port = 3001;
+const default_port = 3001;
+const default_hostname = 'localhost';
+const configFile = './config.json';
+
+// Default config
+var config = {
+    "host": default_hostname,
+    "port": default_port
+}
+
+// Load config (if found)
+if (fs.existsSync(configFile)) {
+    const configFile_content = fs.readFileSync(configFile);
+    const configFile_data = JSON.parse(configFile_content, 'utf8')
+    config = {...config,...configFile_data};
+    console.log(`Merged-in config from ${configFile}!`)
+}
 
 const server = http.createServer((req, res) => {
     // Build file path
@@ -59,6 +74,6 @@ const server = http.createServer((req, res) => {
     });
 });
 
-server.listen(port, hostname, () => {
-    console.log(`Server running at http://${hostname}:${port}/`);
+server.listen(config["port"], config["host"], () => {
+    console.log(`Client running at http://${config["host"]}:${config["port"]}/`);
 });

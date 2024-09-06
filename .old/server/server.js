@@ -6,7 +6,7 @@
 
 // Server Config (defaults, may be changed via a config.json file in the same directory)
 const default_port = 3000;
-const default_host = "localhost";
+const default_host = "192.168.39.188";
 const default_tickRate = 5000; // Delay in ms
 const configFile = './config.json';
 
@@ -170,39 +170,6 @@ function deepFilter(obj, paths) {
     return objCopy;
 }
 
-// Function
-function keyfilterlist(list,filterkey) {
-    if (list.length <= 0) {
-        return list;
-    }
-    filterkey = filterkey.trim()
-    if (filterkey.startsWith("*")) {
-        return list;
-    } else if (filterkey.startsWith("!")) {
-        filterkey = filterkey.replace(/^!+/, '');
-        let toret = [];
-        list.forEach( (key) => {
-            if (key != filterkey) {
-                toret.push(key);
-            }
-        });
-        return toret;
-    } else {
-        return list[filterkey];
-    }
-}
-function keyfilterlist_multiple(list,filterkeys) {
-    let toret = [];
-    filterkeys.forEach( (filterkey) => {
-        keyfilterlist(list,filterkey).forEach( (rem) => {
-            if (!toret.includes(rem)) {
-                toret.push(rem);
-            }
-        } );
-    } );
-    return toret;
-}
-
 // Function to reset the gameState
 function resetGameState() {
     gameState = { ...defaultGameState };
@@ -212,39 +179,40 @@ function resetGameState() {
 // override_recipient is a playerid, if null it will match to the client.
 function broadcastGameState(override_recipient=null,isConnectAnswer=false) {
     log(`Broadcasted update (i:${broadcastIndex})`, "route",1);
+    localGameState = { ...gameState };
+    // Append basic request meta
     const timestamp = Date.now()
+    localGameState["_req"] = {
+        "timestamp": timestamp.toString(),
+        "index": broadcastIndex,
+        "recipient": "unknown",
+    }
+    if (isConnectAnswer === true) {
+        localGameState["_req"]["handShakeInfo"] = config["handShakeInfo"];
+    }
     // Iterate over al clients, try to identify recipient, convert the data to JSON, and send.
-    i=0;
-    wss.clients.forEach( (wsclient) => {
+    i = 0;
+    wss.clients.forEach( (client) => {
         i++;
-        let localGameState = { ...gameState };
-        let recipient = null;
-        let currentFilters = [];
-        let updateMessage;
+        recipient = null;
+        currentFilters = [];
         // Find playerid matching client
         if (override_recipient !== null) {
             recipient = override_recipient;
         } else {
             // Identify
-            for (const [playerid,playerdata] of Object.entries(localGameState["data"])) {
-                if (playerdata["_wsclient_"] === wsclient) {
-                    recipient = playerid;
-                    console.log(`Matched pid '${playerid}' on ${i}:th client. (r:${recipient})`)
+            for (const [key,value] of Object.entries(localGameState["data"])) {
+                //const peername = value["_wsclient_"]._socket._peername;
+                //const builtAdress = value["_wsclient_"]._socket._peername.address + ":" + value["_wsclient_"]._socket._peername.port;
+                //console.log(value["_dox_"], builtAdress)
+                //console.log( Object.keys(value["_wsclient_"]) );
+                if (value["_wsclient_"] === client) {
+                    recipient = key;
+                    console.log(`Matched pid '${key}' on ${i}:th client. (r:${recipient})`)
                     break;
                 }
                 console.log(`Could not match pid for ${i}:th client. (r:${recipient})`)
             }
-        }
-        // Append basic request data
-        localGameState["_req"] = {
-            "timestamp": timestamp.toString(),
-            "index": broadcastIndex,
-        }
-        if (recipient != null) {
-            localGameState["_req"]["recipient"] = recipient;
-        }
-        if (isConnectAnswer === true) {
-            localGameState["_req"]["handShakeInfo"] = config["handShakeInfo"];
         }
         // Note: The following code adds stuff to the 'currentFilters' to be filtered from the
         //       sent out gameState. This list is applied from first entry to last, meaning
@@ -252,6 +220,7 @@ function broadcastGameState(override_recipient=null,isConnectAnswer=false) {
         // Add recipient?
         if (config["filterPlayerData"] === true) {
             if (recipient !== null) {
+                localGameState["_req"]["recipient"] = recipient;
                 currentFilters = currentFilters.concat( config["filters"]["playerdata"].map(str => str.replace(/%/g, recipient)) )
             } else {
                 if (config["unknownRecipientSendMode"].toLowerCase() === "all") {
@@ -273,10 +242,10 @@ function broadcastGameState(override_recipient=null,isConnectAnswer=false) {
         if (currentFilters.length > 0) {
             localGameState = deepFilter(localGameState,currentFilters);
         }
-        updateMessage = JSON.stringify(localGameState);
+        var updateMessage = JSON.stringify(localGameState);
         // Send
-        if (wsclient.readyState === WebSocket.OPEN) {
-            wsclient.send(updateMessage);
+        if (client.readyState === WebSocket.OPEN) {
+            client.send(updateMessage);
         }
     });
     // Increment index
@@ -530,61 +499,6 @@ if (parts[parts.length - 1].includes(":")) {
 
 // [Main GameHost Logic Bellow]
 
-// Function to post a choice of cards (cards will be sent to client)
-// Returns the playerid and the choiceid as a list. => [playerid,choiceid]
-// Note! This function does not broadcast and `posted` will be index of last broadcast!
-function postChoice(playerid,listOfCardIds,hidden) {
-    const timestamp = Date.now();
-    const id = timestamp.toString();
-    gameState["choices"][playerid] = {
-        "id": id,
-        "posted": broadcastIndex,
-        "status": "waiting",
-        "cards": listOfCardIds,
-        "hidden": hidden,
-        "cardAmnt": null
-    };
-    return [playerid,id];
-}
-// Function to post a choice of cards (same as postChoice but just takes an amount to not send cards to client)
-// also returns a list of [playerid,choiceid]
-// Note! This function does not broadcast and `posted` will be index of last broadcast!
-function postChoiceAmnt(playerid,amntOfCards) {
-    const timestamp = Date.now();
-    const id = timestamp.toString();
-    gameState["choices"][playerid] = {
-        "id": id,
-        "posted": broadcastIndex,
-        "status": "waiting",
-        "cards": [],
-        "hidden": true,
-        "cardAmnt": amntOfCards
-    };
-    return [playerid,id];
-}
-// Function to "de-list" / remove al choices from a player
-// returns the list of choices if playerid was found else null.
-function delistChoicesForPlayer(playerid) {
-    if (Object.keys(gameState["choices"]).includes(playerid)) {
-        const toret = {...gameState["choices"][playerid]};
-        delete gameState["choices"][playerid];
-        return toret;
-    }
-    return null;
-}
-// Function to "de-list" a specific choice.
-// returns the list of choices if playerid was found else null.
-function delistChoice(choiceid) {
-    for (const [playerid,playersChoices] of Object.entries(gameState["choices"])) {
-        if (playersChoices.id === choiceid) {
-            const toret = {...playersChoices};
-            delete gameState["choices"][playerid];
-            return toret;
-        }
-    }
-    return null;
-}
-
 // Main tick function
 function tick() {
     broadcastGameState();
@@ -619,19 +533,6 @@ function handleSelection(choiceIndex,skipBroadcast=false) {
 // Function to handle action sent by client 
 function handleAction(parsedData) {
     // parsedData is the Object sent to the server
-    // ´parsedData.event´ should always be 'action'
-    // `parsedData.cardIndex` should be the `cardIndex` used to invoke the action.
-    // `parsedData.affected` should be a list of the targets of the effects,
-    //    where the string "*" means everyone and the string "!<pid>" is everyone
-    //    except a sertain player, "<pid>" would be a specific player.
-    //    The `keyfilterlist(<list>,<filterStr>)` function takes one string and returns
-    //      the list entries selected by that key.
-    //    To quickely filter the entire `parsedData.affected` list, one can call
-    //      `keyfilterlist_multiple(<list>,<filterList>)` which runs through each entry
-    //      in the filterList and merges non-already-selected entries.
-    //    Example:
-    //      Given the players ['one','two','three']
-    //      and the filters   ['!two']
-    //      Should return     ['three','one'] 
-    //
+    // ´parsedData.event´ should always be `action`
+    // `parsedData.`
 }
