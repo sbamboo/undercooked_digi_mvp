@@ -229,10 +229,8 @@ function broadcastGameState(override_recipient=null,isConnectAnswer=false) {
             for (const [playerid,playerdata] of Object.entries(localGameState["data"])) {
                 if (playerdata["_wsclient_"] === wsclient) {
                     recipient = playerid;
-                    console.log(`Matched pid '${playerid}' on ${i}:th client. (r:${recipient})`)
                     break;
                 }
-                console.log(`Could not match pid for ${i}:th client. (r:${recipient})`)
             }
         }
         // Append basic request data
