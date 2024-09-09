@@ -433,11 +433,7 @@ wss.on('connection', (ws, req) => {
 
             //// Disconnect Event
             else if (parsedData.event === "disconnect") {
-                if (parsedData["_DEV_keepAlive"] !== true) {
-                    log(`Disconnect event received from ${senderIp}.`, "route",1);
-                } else {
-                    log(`Disconnect event received from ${senderIp}, with dev.keepalive!`, "route",1);
-                }
+                log(`Disconnect event received from ${senderIp}.`, "route",1);
                 // Disconnect using client
                 if (config["disconnectEventHandlerMode"].toLowerCase() === "client") {
                     handleDisconnectionByClient(senderIp,ws,"remove");
@@ -458,7 +454,7 @@ wss.on('connection', (ws, req) => {
                     handleDisconnectionByPlayerId(senderIp,playerid,"remove");
                 }
                 // Close Websocket
-                if (config["keepAliveWsOnDisconnectEvent"] !== true && parsedData["_DEV_keepAlive"] !== true) {
+                if (config["keepAliveWsOnDisconnectEvent"] !== true) {
                     ws.close();
                 }
             }
