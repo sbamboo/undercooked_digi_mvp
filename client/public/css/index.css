@@ -60,4 +60,9 @@ section {
     font-family: monospace; /* Use a monospace font for code */
     border: 1px solid #ddd; /* Add a border for better visibility */
     padding: 10px; /* Add padding for readability */
-  }
+}
+
+/* Game CSS*/
+#game-ui{
+    
+}
