@@ -304,11 +304,13 @@ function main(scene,event,parsed) {
 
 // Function to show a hidden choice and return index
 function showHiddenChoice(amnt) {
+    console.log(`Got hidden choice for ${amnt} cards!`);
     return 0;
 }
 
 // Function to show a visible choice and return index
 function showShownChoice(cards) {
+    console.log(`Got visible choice for ${cards}!`);
     return 0;
 }
 
@@ -316,7 +318,9 @@ function showShownChoice(cards) {
 function showCardChoice(choiceObj,playerId) {
     if (choiceObj.status === "waiting") {
         let index;
+        // Hidden?
         if (choiceObj.hidden == true) {
+            // Is the cardAmnt correctly set for hidden choices? Or should we fallback to .cards.length?
             if (choiceObj.cardAmnt != null && choiceObj.cardAmnt != undefined) {
                 index = showHiddenChoice(choiceObj.cardAmnt);
             } else {
@@ -325,10 +329,12 @@ function showCardChoice(choiceObj,playerId) {
         } else {
             index = showShownChoice(choiceObj.cards);
         }
+        // Build, Serialize and Send data.
         const data = {
             "event": "select",
             "choiceIndex": `${index}`,
             "choiceId": choiceObj.id,
+            // Unused currently
             "choicePlayerId": playerId
         };
         const connectMessage = JSON.stringify(data);

@@ -462,7 +462,7 @@ wss.on('connection', (ws, req) => {
             //// Select event
             else if (parsedData.event === 'select') {
                 if (!isNaN(parsedData.choiceIndex) && parsedData.choiceIndex.trim() !== '') {
-                    handleSelection(parsedData.choiceId,parsedData.choicePlayerId,parsedData.choiceIndex); // DEFINED AT BOTTOM OF FILE
+                    handleSelection(parsedData.choiceId,parsedData.choiceIndex); // DEFINED AT BOTTOM OF FILE
                 } else {
                     ws.send(JSON.stringify({ error: 'Invalid choiceIndex' }));
                 }
@@ -629,8 +629,14 @@ function handleStop(skipBroadcast=false) {
 }
 
 // Function to handle selection made by client (select event)
-function handleSelection(choiceId,playerId,choiceIndex,skipBroadcast=false) {
-    gameState.choices[playerId].status = "completed";
+function handleSelection(choiceId,choiceIndex,skipBroadcast=false) {
+    //gameState.choices[playerId].status = "completed";
+    for (const [key,value] of Object.entries(gameState.choices)) {
+        if (value.id === choiceId) {
+            gameState.choices[key].status = "completed";
+            break;
+        }
+    }
     log(`Selection made: ChoiceIndex=${choiceIndex}`)
     if (skipBroadcast !== true) {
         broadcastGameState();
