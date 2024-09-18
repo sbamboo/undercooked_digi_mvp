@@ -287,9 +287,6 @@ function sendDisconnectMessage() {
 }
 
 
-
-
-
 // [Main GameClient Logic Bellow]
 function main(scene,event,parsed) {
     // [PLACEHOLDER FOR GAME RENDERING, START]
@@ -298,4 +295,39 @@ function main(scene,event,parsed) {
     // Reinitialize highlight.js to apply syntax highlighting
     hljs.highlightElement(responseContainer.querySelector('code'));
     // [PLACEHOLDER FOR GAME RENDERING, STOP]
+
+    // Identify player
+    if (parsed._req.recipient) {
+        showCardChoice( parsed.choices[parsed._req.recipient] );
+    }
+}
+
+// Function to show a hidden choice and return index
+function showHiddenChoice(amnt) {
+    return 0;
+}
+
+// Function to show a visible choice and return index
+function showShownChoice(cards) {
+    return 0;
+}
+
+// Function to display a choice of cards
+function showCardChoice(choiceObj) {
+    let index;
+    if (choiceObj.hidden == true) {
+        if (choiceObj.cardAmnt != null && choiceObj.cardAmnt != undefined) {
+            index = showHiddenChoice(choiceObj.cardAmnt);
+        } else {
+            index = showHiddenChoice(choiceObj.cards.length);
+        }
+    } else {
+        index = showShownChoice(choiceObj.cards);
+    }
+    const data = {
+        "event": "select",
+        "choiceIndex": `${index}`
+    };
+    const connectMessage = JSON.stringify(data);
+    socket.send(connectMessage);
 }
