@@ -482,6 +482,21 @@ wss.on('connection', (ws, req) => {
             else if (parsedData.event === 'action') {
                 handleAction(parsedData); // DEFINED AT BOTTOM OF FILE
             }
+
+            //// LockIn event
+            else if (parsedData.event === 'lockin') {
+                handleLockIn(parsedData); // DEFINED AT BOTTOM OF FILE
+            }
+
+            //// Steal event
+            else if (parsedData.event === 'steal') {
+                handleSteal(parsedData); // DEFINED AT BOTTOM OF FILE
+            }
+
+            //// Gamble event
+            else if (parsedData.event === 'gamble') {
+                handleGamble(parsedData); // DEFINED AT BOTTOM OF FILE
+            }
             
             //// Fallback
             else {
@@ -666,4 +681,24 @@ function handleAction(parsedData) {
     //
     const affectedPlayers = keyfilterlist_multiple( Object.keys(gameState["data"]), parsedData.affects );
     log(`Got action event with cardid '${parsedData.cardId}' which tagets [${parsedData.affects}] affecting [${affectedPlayers}]!`);
+}
+
+// Function to handle a LockIn request by the client
+function handleLockIn(parsedData) {
+    // parsedData is the Object sent to the server
+    //
+    // ´parsedData.event´ should always be 'lockin'
+    //
+    // ´parsedData.cardId´
+    //
+}
+
+// Function to handle a steal request by the client
+function handleSteal(parsedData) {
+
+}
+
+// Function to handle a gamble request by the client
+function handleGamble(parsedData) {
+
 }
