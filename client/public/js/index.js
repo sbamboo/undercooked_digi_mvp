@@ -386,9 +386,6 @@ function sendDisconnectMessage() {
 }
 
 
-
-
-
 // [Main GameClient Logic Bellow]
 function main(scene,event,parsed) {
     // [PLACEHOLDER FOR GAME RENDERING, START]
@@ -397,4 +394,49 @@ function main(scene,event,parsed) {
     // Reinitialize highlight.js to apply syntax highlighting
     hljs.highlightElement(responseContainer.querySelector('code'));
     // [PLACEHOLDER FOR GAME RENDERING, STOP]
+
+    // Identify player
+    if (parsed._req.recipient) {
+        showCardChoice( parsed.choices[parsed._req.recipient], parsed._req.recipient );
+    }
+}
+
+// Function to show a hidden choice and return index
+function showHiddenChoice(amnt) {
+    console.log(`Got hidden choice for ${amnt} cards!`);
+    return 0;
+}
+
+// Function to show a visible choice and return index
+function showShownChoice(cards) {
+    console.log(`Got visible choice for ${cards}!`);
+    return 0;
+}
+
+// Function to display a choice of cards
+function showCardChoice(choiceObj,playerId) {
+    if (choiceObj.status === "waiting") {
+        let index;
+        // Hidden?
+        if (choiceObj.hidden == true) {
+            // Is the cardAmnt correctly set for hidden choices? Or should we fallback to .cards.length?
+            if (choiceObj.cardAmnt != null && choiceObj.cardAmnt != undefined) {
+                index = showHiddenChoice(choiceObj.cardAmnt);
+            } else {
+                index = showHiddenChoice(choiceObj.cards.length);
+            }
+        } else {
+            index = showShownChoice(choiceObj.cards);
+        }
+        // Build, Serialize and Send data.
+        const data = {
+            "event": "select",
+            "choiceIndex": `${index}`,
+            "choiceId": choiceObj.id,
+            // Unused currently
+            "choicePlayerId": playerId
+        };
+        const connectMessage = JSON.stringify(data);
+        socket.send(connectMessage);
+    }
 }

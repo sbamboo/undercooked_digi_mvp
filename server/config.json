@@ -1,6 +1,0 @@
-{
-    "_note_": "This is a local server config.",
-    
-    "port": 3000,
-    "host": "localhost"
-}
