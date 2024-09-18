@@ -298,7 +298,7 @@ function main(scene,event,parsed) {
 
     // Identify player
     if (parsed._req.recipient) {
-        showCardChoice( parsed.choices[parsed._req.recipient] );
+        showCardChoice( parsed.choices[parsed._req.recipient], parsed._req.recipient );
     }
 }
 
@@ -313,21 +313,25 @@ function showShownChoice(cards) {
 }
 
 // Function to display a choice of cards
-function showCardChoice(choiceObj) {
-    let index;
-    if (choiceObj.hidden == true) {
-        if (choiceObj.cardAmnt != null && choiceObj.cardAmnt != undefined) {
-            index = showHiddenChoice(choiceObj.cardAmnt);
+function showCardChoice(choiceObj,playerId) {
+    if (choiceObj.status === "waiting") {
+        let index;
+        if (choiceObj.hidden == true) {
+            if (choiceObj.cardAmnt != null && choiceObj.cardAmnt != undefined) {
+                index = showHiddenChoice(choiceObj.cardAmnt);
+            } else {
+                index = showHiddenChoice(choiceObj.cards.length);
+            }
         } else {
-            index = showHiddenChoice(choiceObj.cards.length);
+            index = showShownChoice(choiceObj.cards);
         }
-    } else {
-        index = showShownChoice(choiceObj.cards);
+        const data = {
+            "event": "select",
+            "choiceIndex": `${index}`,
+            "choiceId": choiceObj.id,
+            "choicePlayerId": playerId
+        };
+        const connectMessage = JSON.stringify(data);
+        socket.send(connectMessage);
     }
-    const data = {
-        "event": "select",
-        "choiceIndex": `${index}`
-    };
-    const connectMessage = JSON.stringify(data);
-    socket.send(connectMessage);
 }
