@@ -54,10 +54,39 @@
     }
     button {
       width: fit-content;
-      margin-bottom: 40px;
+      margin-bottom: 10px;
     }
     label {
       margin-right: 5px;
+    }
+    .values-note {
+      margin: 0px;
+      margin-left: 5px;
+    }
+    .values-note i {
+      color: blue;
+    }
+    .values-comment {
+      margin: 0px;
+      margin-left: 5px;
+      color: green;
+    }
+    .values-comment i {
+      color: rgb(4, 48, 4);
+    }
+    .values-redcomment {
+      margin: 0px;
+      margin-left: 5px;
+      color: red;
+    }
+    .values-redcomment i {
+      color: rgb(52, 13, 13);
+    }
+    .hr {
+      border-bottom: 1px solid black;
+      width: 100vw;
+      margin-top: 20px;
+      margin-bottom: 30px;
     }
   </style>
 </head>
@@ -78,40 +107,84 @@
       <label for="serverAddress">Server Address: </label>
       <input type="text" id="serverAddress">
     </div>
-    <button id="reconnectButton">Send.Event.Connect </button>
+    <div class="hflex">
+      <button id="reconnectButton">Send.Event.Connect </button>
+      <button id="disconnectButton">Send.Event.Disconnect</button>
+    </div>
   </div>
 
   <!-- Add buttons to send events -->
   <div id="eventsBox" class="vflex">
+
+    <div class="hr"></div>
     <div class="hflex">
       <label for="event_select_choiceindex">Select.ChoiceIndex: </label>
       <input type="text" id="event_select_choiceindex">
+      <p class="values-comment">#Use <i>-1</i> to negate</p>
+    </div>
+    <div class="hflex">
+      <label for="event_select_cause">Optional.Select.Cause:</label>
+      <input type="text" id="event_select_cause">
+      <p class="values-note">(<i>action</i> / <i>lockin</i> / <i>steal</i> / <i>gamble</i>)</p>
+    </div>
+    <div class="hflex">
+      <label for="event_select_cardid">Optional.Select.CardId:</label>
+      <input type="text" id="event_select_cardid">
+      <p class="values-redcomment">#OptionalOverriderCardId</p>
+    </div>
+    <div class="hflex">
+      <label for="event_select_affects">Optional.Select.Affects:</label>
+      <input type="text" id="event_select_affects">
+      <p class="values-redcomment">#<i>!&lt;playerid&gt;</i> selects everyone else</p>
     </div>
     <button id="selectButton">Send.Event.Select</button>
+
+    <div class="hr"></div>
     <div class="hflex">
       <label for="event_action_cardid">Action.CardId: </label>
       <input type="text" id="event_action_cardid">
+      <p class="values-comment">#CardThatsIssuingAction</p>
     </div>
     <div class="hflex">
       <label for="event_action_affects">Action.Affects (Split by ;): </label>
       <input type="text" id="event_action_affects">
+      <p class="values-comment">#<i>!&lt;playerid&gt;</i> selects everyone else</p>
     </div>
-      <button id="actionButton">Send.Event.Action</button>
+    <button id="actionButton">Send.Event.Action</button>
+
+    <div class="hr"></div>
+    <div class="hflex">
+      <label for="event_lockin_cardid">LockIn.CardId: </label>
+      <input type="text" id="event_lockin_cardid">
+      <p class="values-comment">#CardToLockIn</p>
     </div>
+    <button id="lockinButton">Send.Event.LockIn</button>
+
+    <div class="hr"></div>
+    <div class="hflex">
+      <label for="event_steal_cardid">Steal.CardId: </label>
+      <input type="text" id="event_steal_cardid">
+      <p class="values-comment">#HandCardToPutDown#</p>
+    </div>
+    <button id="stealButton">Send.Event.Steal</button>
+
+    <div class="hr"></div>
+    <div class="hflex">
+      <label for="event_gamble_cardid">Gamble.CardId: </label>
+      <input type="text" id="event_gamble_cardid">
+      <p class="values-comment">#HandCardToThrowAway</p>
+    </div>
+    <button id="gambleButton">Send.Event.Gamble</button>
+
+    <div class="hr"></div>
     <label for="state">State: </label>
     <input type="text" id="state" readonly disabled>
     <div class="hflex">
       <button id="startButton">Send.Event.Start</button>
       <button id="stopButton">Send.Event.Stop</button>
     </div>
-  </div>
 
-  <!-- Add a button to send a disconnect event -->
-  <div class="hflex">
-    <label for="keepalive">KeepAlive: </label>
-    <input type="checkbox" id="keepalive" disabled>
   </div>
-  <button id="disconnectButton">Send.Event.Disconnect</button>
 
   <!-- Add a section for the player list -->
   <div id="playerList">
@@ -262,16 +335,9 @@
       if (socket.readyState === WebSocket.OPEN) {
         // Send a "disconnect" event
         const data = { event: 'disconnect' };
-        if (document.getElementById("keepalive").checked === true) {
-          data["_DEV_keepAlive"] = true;
-        }
         const disconnectMessage = JSON.stringify(data);
         socket.send(disconnectMessage);
-        if (document.getElementById("keepalive").checked === true) {
-          console.log('Sent disconnect event with keepalive.');
-        } else {
-          console.log('Sent disconnect event');
-        }
+        console.log('Sent disconnect event');
         // Optionally close the WebSocket connection after sending the event
         socket.close();
       } else {
@@ -293,6 +359,18 @@
         "event": "select",
         "choiceIndex": document.getElementById('event_select_choiceindex').value
       };
+      const cause = document.getElementById('event_select_cause').value;
+      if (cause && cause !== "") {
+        data["cause"] = cause;
+      }
+      const cardid = document.getElementById('event_select_cardid').value;
+      if (cardid && cardid !== "") {
+        data["cardId"] = cardid;
+      }
+      const affects = document.getElementById('event_select_affects').value;
+      if (affects && affects !== "") {
+        data["affects"] = affects;
+      }
       const connectMessage = JSON.stringify(data);
       socket.send(connectMessage);
     });
@@ -307,6 +385,39 @@
       const connectMessage = JSON.stringify(data);
       socket.send(connectMessage);
       console.log(`Sent action ${document.getElementById('event_action_cardid').value} for ${document.getElementById('event_action_affects').value.replace(" ","").split(";")}`)
+    });
+
+    // Add click event listener to the lockin button
+    document.getElementById('lockinButton').addEventListener('click', () => {
+      const data = {
+        "event": "lockin",
+        "cardId": document.getElementById('event_lockin_cardid').value
+      };
+      const connectMessage = JSON.stringify(data);
+      socket.send(connectMessage);
+      console.log(`Sent lockin for ${document.getElementById('event_lockin_cardid').value}`)
+    });
+
+    // Add click event listener to the steal button
+    document.getElementById('stealButton').addEventListener('click', () => {
+      const data = {
+        "event": "steal",
+        "cardId": document.getElementById('event_steal_cardid').value
+      };
+      const connectMessage = JSON.stringify(data);
+      socket.send(connectMessage);
+      console.log(`Sent steal for ${document.getElementById('event_steal_cardid').value}`)
+    });
+
+    // Add click event listener to the gamble button
+    document.getElementById('gambleButton').addEventListener('click', () => {
+      const data = {
+        "event": "gamble",
+        "cardId": document.getElementById('event_gamble_cardid').value
+      };
+      const connectMessage = JSON.stringify(data);
+      socket.send(connectMessage);
+      console.log(`Sent gamble for ${document.getElementById('event_gamble_cardid').value}`)
     });
   </script>
 </body>

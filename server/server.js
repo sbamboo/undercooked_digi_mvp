@@ -28,6 +28,8 @@ let config = {
     "keepAliveWsOnDisconnectEvent": false,
     "resetGameStateOnStop": true,
     "resetGameStateOnLoopStop": false,
+    "sendJoinAndLeaveEvents": false,
+    "playerIdRetriver": "Incremental", // "Incremental" or "Short" or "UUID"
     "handShakeInfo": {},
     "gameState": {
         "format": 1,
@@ -61,6 +63,132 @@ let config = {
         "playerdata":     ["data.!%.hand","choices.!%"],
         "exclAlPlayers":  ["data.~"], // Used when "unknownRecipientSendMode" is set to All, and no recipient is identified.
         "emptyMsgFilter": ["_msg_"]
+    },
+    // function to be called when the selectEvent has a set "cause"
+    "selectEventCauses": {
+        "action": handleAction,
+        "lockin": handleLockIn,
+        "steal": handleSteal,
+        "gamble": handleGamble
+    },
+
+    // Registry
+    "registry": {
+        "cards": {
+            0: {
+                "cardName": "Ägg"
+            },
+            1: {
+                "cardName": "Bär"
+            },
+            3: {
+                "cardName": "Tomat"
+            },
+            4: {
+                "cardName": "Skål"
+            },
+            5: {
+                "cardName": "Frukt"
+            },
+            6: {
+                "cardName": "Fisk"
+            },
+            7: {
+                "cardName": "Nudlar"
+            },
+            8: {
+                "cardName": "Broccoli"
+            },
+            9: {
+                "cardName": "Rött Kött"
+            },
+            10: {
+                "cardName": "Pasta"
+            },
+            11: {
+                "cardName": "Sallad"
+            },
+            12: {
+                "cardName": "Gurka"
+            },
+            13: {
+                "cardName": "Räkor"
+            },
+            14: {
+                "cardName": "Fågel Kött"
+            },
+            15: {
+                "cardName": "Glass"
+            },
+            16: {
+                "cardName": "Potatis"
+            },
+            17: {
+                "cardName": "Strut"
+            },
+            18: {
+                "cardName": "Grönsaker"
+            },
+            19: {
+                "cardName": "Räkor"
+            }
+        },
+        "recipes": {
+            0: {
+                "recipeName": "Pastasallad",
+                "ingredients":[10,11],
+                "points": 1
+            },
+            1: {
+                "recipeName": "Köttgryta",
+                "ingredients":[18,9,4],
+                "points": 2
+            },
+            2: {
+                "omelett": "Ägg",
+                "ingredients":[0],
+                "points": 1
+            },
+            2: {
+                "recipeName": "Glasstrut",
+                "ingredients":[15,17],
+                "points": 1
+            },
+            3: {
+                "recipeName": "Carbonara",
+                "ingredients":[10,9,0],
+                "points": 2
+            },
+            4: {
+                "recipeName": "Rä-Rä-Rä-Räksallad",
+                "ingredients":[19,11],
+                "points": 1
+            },
+            5: {
+                "recipeName": "Köttbullar & Potatismos",
+                "ingredients":[16,9],
+                "points": 1
+            },
+            6: {
+                "recipeName": "Fruktsallad",
+                "ingredients":[5,4],
+                "points": 1
+            }
+        },
+        "actions": {
+            0: {
+                "cardName": "Reset",
+                "cardDescription": "Välj en spelare som lägger alla sina kort i botten av korthögen & tar 3 nyad",
+            },
+            1: {
+                "cardName": "Steal Hand",
+                "cardDescription": "Byt hand med en valfri spelare",
+            },
+            2: {
+                "cardName": "Apocalyps",
+                "cardDescription": "Alla lägger sina kort i botten av högen tar 3 nya kort",
+            }
+        }
     }
 };
 //#region setup
@@ -202,6 +330,9 @@ function keyfilterlist(list,filterkey) {
 }
 function keyfilterlist_multiple(list,filterkeys) {
     let toret = [];
+    if (typeof filterkeys === 'string') {
+        filterkeys = [filterkeys];
+    }
     filterkeys.forEach( (filterkey) => {
         keyfilterlist(list,filterkey).forEach( (rem) => {
             if (!toret.includes(rem)) {
@@ -289,6 +420,13 @@ function broadcastGameState(override_recipient=null,isConnectAnswer=false) {
     broadcastIndex++;
 }
 
+// Function to add an event to lastEvents
+function addLoggedEvent(event) {
+    if (config["sendJoinAndLeaveEvents"] === true) {
+        gameState.lastEvents.push(event);
+    }
+}
+
 // Function to start the broadcast loop
 function startBroadcastLoop() {
     if (tickIntervalObj) return; // Avoid starting multiple intervals
@@ -308,13 +446,26 @@ function stopBroadcastLoop() {
             resetGameState();
         }
         log("Stopping loop! (no clients)", "loop");
+        if (config["sendJoinAndLeaveEvents"] === true) { gameState.lastEvents = []; };
     }
 }
 
 // Function to handle new connections.
 // Returns the playerid of the new connection.
 function handleNewConnection(senderIp,requestedName,wsclient) {
-    var playerid = gameState["_ws_clients_"]+1;
+    var playerid;
+    if (config["playerIdRetriver"].toLowerCase() === "uuid") {
+        playerid = 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+            var r = Math.random() * 16 | 0, v = c === 'x' ? r : (r & 0x3 | 0x8);
+            return v.toString(16);
+        });
+    } else if (config["playerIdRetriver"].toLowerCase() === "short") {
+        playerid = 'xxxxxxxx'.replace(/x/g, function() {
+            return (Math.random() * 16 | 0).toString(16);
+        });
+    } else {
+        playerid = gameState["_ws_clients_"]+1;
+    }
     // Check if the name is taken aswell as if the ip is already linked,
     // meaning its a reconnect.
     var foundReqName = false;
@@ -351,11 +502,13 @@ function handleNewConnection(senderIp,requestedName,wsclient) {
         gameState.data[playerid]["_dox_"] = senderIp;
         gameState.data[playerid]["_wsclient_"] = wsclient;
         log(`Connected new player. (IP:${senderIp})`, "route",1)
+        addLoggedEvent( {"playerJoin": `${playerid}`} );
     }
     // Else just set status
     else {
         log(`Re-connected new player. (IP:${senderIp})`, "route",1)
         gameState.data[playerid]["_wsclient_"] = wsclient;
+        addLoggedEvent( {"playerJoin": `${playerid}`} );
     }
     gameState.data[playerid]["status"] = "active";
     // Return ID
@@ -369,9 +522,11 @@ function handleDisconnectionByPlayerId(senderIp,playerid,mode="remove") {
     if (playerid !== null) {
         if (mode.toLowerCase() === "inactivate") {
             gameState.data[playerid]["status"] = "inactive";
+            addLoggedEvent( {"playerInactivate": `${playerid}`} );
             log(`${senderIp} inactivated.`, "route",1);
         } else {
             delete gameState.data[playerid];
+            addLoggedEvent( {"playerDisconnect": `${playerid}`} );
             log(`Removed ${senderIp}, disconnected.`, "netio",1);
         }
     } else {
@@ -380,6 +535,7 @@ function handleDisconnectionByPlayerId(senderIp,playerid,mode="remove") {
         } else {
             log(`${senderIp} disconnected. (${mode} failed, no-pid)`, "netio",1);
         }
+        addLoggedEvent( {"playerDisconnect": "unknown"} );
     }
 }
 function handleDisconnectionByClient(senderIp,client,mode="remove") {
@@ -394,12 +550,15 @@ function handleDisconnectionByClient(senderIp,client,mode="remove") {
     if (knownPlayerid !== null) {
         if (mode.toLowerCase() == "inactivate") {
             gameState.data[knownPlayerid]["status"] = "inactive";
+            addLoggedEvent( {"playerInactivate": `${knownPlayerid}`} );
             log(`${senderIp} inactivated. (pid:${knownPlayerid})`, "route",1);
         } else {
             delete gameState.data[knownPlayerid];
+            addLoggedEvent( {"playerDisconnect": `${knownPlayerid}`} );
             log(`Removed ${senderIp}, disconnected. (pid:${knownPlayerid})`, "netio",1);
         }
     } else {
+        addLoggedEvent( {"playerDisconnect": "unknown"} );
         log(`Unmatched client ${senderIp} disconnected.`, "netio",1);
     }
 }
@@ -419,6 +578,15 @@ wss.on('connection', (ws, req) => {
         try {
             // Handle events
             const parsedData = JSON.parse(message);
+
+            // Identify playerid by ip
+            parsedData.sender = null;
+            for (const [key,value] of Object.entries(gameState.data)) {
+                if (value._dox_ === senderIp) {
+                    parsedData.sender = key;
+                    break;
+                }
+            }
 
             //// Connect Event (Request)
             if (parsedData.event === "connect") {
@@ -443,13 +611,7 @@ wss.on('connection', (ws, req) => {
                     if (parsedData.playerid) {
                         playerid = parsedData.playerid;
                     } else {
-                        // Identify playerid by ip
-                        for (const [key,value] of Object.entries(gameState.data)) {
-                            if (value._dox_ === senderIp) {
-                                playerid = key;
-                                break;
-                            }
-                        }
+                        playerid = parsedData.sender;
                     }
                     handleDisconnectionByPlayerId(senderIp,playerid,"remove");
                 }
@@ -462,7 +624,7 @@ wss.on('connection', (ws, req) => {
             //// Select event
             else if (parsedData.event === 'select') {
                 if (!isNaN(parsedData.choiceIndex) && parsedData.choiceIndex.trim() !== '') {
-                    handleSelection(parsedData.choiceId,parsedData.choiceIndex); // DEFINED AT BOTTOM OF FILE
+                    handleSelection(parsedData); // DEFINED AT BOTTOM OF FILE
                 } else {
                     ws.send(JSON.stringify({ error: 'Invalid choiceIndex' }));
                 }
@@ -478,22 +640,19 @@ wss.on('connection', (ws, req) => {
                 handleStop(); // DEFINED AT BOTTOM OF FILE
             }
 
-            //// Action event
+            //// Action event (Usualy caused by the selectEventHandler)
             else if (parsedData.event === 'action') {
                 handleAction(parsedData); // DEFINED AT BOTTOM OF FILE
             }
-
-            //// LockIn event
+            //// LockIn event (Usualy caused by the selectEventHandler)
             else if (parsedData.event === 'lockin') {
                 handleLockIn(parsedData); // DEFINED AT BOTTOM OF FILE
             }
-
-            //// Steal event
+            //// Steal event (Usualy caused by the selectEventHandler)
             else if (parsedData.event === 'steal') {
                 handleSteal(parsedData); // DEFINED AT BOTTOM OF FILE
             }
-
-            //// Gamble event
+            //// Gamble event (Usualy caused by the selectEventHandler)
             else if (parsedData.event === 'gamble') {
                 handleGamble(parsedData); // DEFINED AT BOTTOM OF FILE
             }
@@ -644,15 +803,39 @@ function handleStop(skipBroadcast=false) {
 }
 
 // Function to handle selection made by client (select event)
-function handleSelection(choiceId,choiceIndex,skipBroadcast=false) {
+function handleSelection(parsedData,skipBroadcast=false) {
+    // Start by getting the choice data and set it to "completed"
     //gameState.choices[playerId].status = "completed";
+    let choiceObj = {"isPlaceholder": true, "hidden":true, "cards":[]};
     for (const [key,value] of Object.entries(gameState.choices)) {
-        if (value.id === choiceId) {
+        if (value.id === parsedData.choiceId) {
             gameState.choices[key].status = "completed";
+            choiceObj = gameState.choices[key];
             break;
         }
     }
-    log(`Selection made: ChoiceIndex=${choiceIndex}`)
+    // Set cardIndex in parsedData
+    if (!isNaN(parsedData.cardId) && parsedData.cardId.trim() !== '') {
+    } else {
+        if (choiceObj.hidden == true || choiceObj.cards.length < 1) {
+            parsedData.cardId = -1;
+        } else {
+            parsedData.cardId = choiceObj.cards[parsedData.choiceIndex];
+        }
+    }
+    // DEBUG
+    if (parsedData.cause) {
+        log(`Selection made: ChoiceIndex=${parsedData.choiceIndex}, Card=${parsedData.cardId}, Cause=${parsedData.cause}, Sender=${parsedData.sender}`)
+    } else {
+        log(`Selection made: ChoiceIndex=${parsedData.choiceIndex}, Card=${parsedData.cardId}, Sender=${parsedData.sender}`)
+    }
+    // Handle 'cause'
+    if (parsedData.cause) {
+        if (Object.keys(config["selectEventCauses"]).includes(parsedData.cause)) {
+            config["selectEventCauses"][parsedData.cause](parsedData);
+        }
+    }
+    // Broadcast
     if (skipBroadcast !== true) {
         broadcastGameState();
     }
@@ -662,7 +845,10 @@ function handleSelection(choiceId,choiceIndex,skipBroadcast=false) {
 function handleAction(parsedData) {
     // parsedData is the Object sent to the server
     //
-    // ´parsedData.event´ should always be 'action'
+    // ´parsedData.event´ may not always be 'action'.
+    //   If the event was fired from the selectEventHandler the `parsedData.cause` will instead be 'action'
+    //
+    // `parsedData.sender` should be the playerId of the sender of the event. (Aslong as they where able to be identified)
     //
     // `parsedData.cardId` should be the `cardId` used to invoke the action.
     //
@@ -679,26 +865,52 @@ function handleAction(parsedData) {
     //      and the filters   ['!two']
     //      Should return     ['three','one'] 
     //
+    if (!parsedData.affects) {
+        log(`Recieved action event without affects-targets!`);
+        return;
+    }
     const affectedPlayers = keyfilterlist_multiple( Object.keys(gameState["data"]), parsedData.affects );
-    log(`Got action event with cardid '${parsedData.cardId}' which tagets [${parsedData.affects}] affecting [${affectedPlayers}]!`);
+    log(`Got action event with cardId '${parsedData.cardId}' with sender '${parsedData.sender}' which tagets [${parsedData.affects}] affecting [${affectedPlayers}]!`);
 }
 
 // Function to handle a LockIn request by the client
 function handleLockIn(parsedData) {
     // parsedData is the Object sent to the server
     //
-    // ´parsedData.event´ should always be 'lockin'
+    // ´parsedData.event´ may not always be 'lockin'.
+    //   If the event was fired from the selectEventHandler the `parsedData.cause` will instead be 'lockin'
     //
-    // ´parsedData.cardId´
+    // `parsedData.sender` should be the playerId of the sender of the event. (Aslong as they where able to be identified)
     //
+    // ´parsedData.cardId´ should be the `cardId` requested to lockin.
+    //
+    log(`Got lockin event with cardId '${parsedData.cardId}' with sender '${parsedData.sender}'!`);
 }
 
 // Function to handle a steal request by the client
 function handleSteal(parsedData) {
-
+    // parsedData is the Object sent to the server
+    //
+    // ´parsedData.event´ may not always be 'steal'.
+    //   If the event was fired from the selectEventHandler the `parsedData.cause` will instead be 'steal'
+    //
+    // `parsedData.sender` should be the playerId of the sender of the event. (Aslong as they where able to be identified)
+    //
+    // ´parsedData.cardId´ should be the `cardId` placed on the "table" by the player.
+    //
+    log(`Got steal event with cardId '${parsedData.cardId}' with sender '${parsedData.sender}'!`);
 }
 
 // Function to handle a gamble request by the client
 function handleGamble(parsedData) {
-
+    // parsedData is the Object sent to the server
+    //
+    // ´parsedData.event´ may not always be 'gamble'.
+    //   If the event was fired from the selectEventHandler the `parsedData.cause` will instead be 'gamble'
+    //
+    // `parsedData.sender` should be the playerId of the sender of the event. (Aslong as they where able to be identified)
+    //
+    // (´parsedData.cardId´ should always be `-1` thus does not matter for this function.)
+    //
+    log(`Got gamble event with cardId '${parsedData.cardId}' with sender '${parsedData.sender}'!`);
 }

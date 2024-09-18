@@ -65,8 +65,8 @@ var registry = {
         },
         19: {
             "cardName": "Räkor"
-        },
-
+        }
+    },
     "recipes": {
         0: {
             "recipeName": "Pastasallad",
@@ -122,6 +122,7 @@ var registry = {
             "cardName": "Apocalyps",
             "cardDescription": "Alla lägger sina kort i botten av högen tar 3 nya kort",
         }
+    }
 }
 
 class Scene {
@@ -397,7 +398,9 @@ function main(scene,event,parsed) {
 
     // Identify player
     if (parsed._req.recipient) {
-        showCardChoice( parsed.choices[parsed._req.recipient], parsed._req.recipient );
+        if (parsed.choices.length > 0) {
+            showCardChoice( parsed.choices[parsed._req.recipient], parsed._req.recipient );
+        }
     }
 }
 
