@@ -10,19 +10,118 @@ const protocolformat = 1;
 var registry = {
     "cards": {
         0: {
-            
-        }
-    },
-    "recipes": {
-        0:{
+            "cardName": "Ägg"
+        },
+        1: {
+            "cardName": "Bär"
+        },
+        3: {
+            "cardName": "Tomat"
+        },
+        4: {
+            "cardName": "Skål"
+        },
+        5: {
+            "cardName": "Frukt"
+        },
+        6: {
+            "cardName": "Fisk"
+        },
+        7: {
+            "cardName": "Nudlar"
+        },
+        8: {
+            "cardName": "Broccoli"
+        },
+        9: {
+            "cardName": "Rött Kött"
+        },
+        10: {
+            "cardName": "Pasta"
+        },
+        11: {
+            "cardName": "Sallad"
+        },
+        12: {
+            "cardName": "Gurka"
+        },
+        13: {
+            "cardName": "Räkor"
+        },
+        14: {
+            "cardName": "Fågel Kött"
+        },
+        15: {
+            "cardName": "Glass"
+        },
+        16: {
+            "cardName": "Potatis"
+        },
+        17: {
+            "cardName": "Strut"
+        },
+        18: {
+            "cardName": "Grönsaker"
+        },
+        19: {
+            "cardName": "Räkor"
+        },
 
+    "recipes": {
+        0: {
+            "recipeName": "Pastasallad",
+            "ingredients":[10,11],
+            "points": 1
+        },
+        1: {
+            "recipeName": "Köttgryta",
+            "ingredients":[18,9,4],
+            "points": 2
+        },
+        2: {
+            "omelett": "Ägg",
+            "ingredients":[0],
+            "points": 1
+        },
+        2: {
+            "recipeName": "Glasstrut",
+            "ingredients":[15,17],
+            "points": 1
+        },
+        3: {
+            "recipeName": "Carbonara",
+            "ingredients":[10,9,0],
+            "points": 2
+        },
+        4: {
+            "recipeName": "Rä-Rä-Rä-Räksallad",
+            "ingredients":[19,11],
+            "points": 1
+        },
+        5: {
+            "recipeName": "Köttbullar & Potatismos",
+            "ingredients":[16,9],
+            "points": 1
+        },
+        6: {
+            "recipeName": "Fruktsallad",
+            "ingredients":[5,4],
+            "points": 1
         }
     },
     "actions": {
-        0:{
-            
+        0: {
+            "cardName": "Reset",
+            "cardDescription": "Välj en spelare som lägger alla sina kort i botten av korthögen & tar 3 nyad",
+        },
+        1: {
+            "cardName": "Steal Hand",
+            "cardDescription": "Byt hand med en valfri spelare",
+        },
+        2: {
+            "cardName": "Apocalyps",
+            "cardDescription": "Alla lägger sina kort i botten av högen tar 3 nya kort",
         }
-    }
 }
 
 class Scene {
