@@ -951,9 +951,16 @@ function handleSelection(parsedData,skipBroadcast=false) {
             config["selectEventCauses"][parsedData.cause](parsedData);
         }
     } else {
-        parsedData.choiceId
+        for (const [key,value] of Object.entries(gameState.choices)) {
+            if (value.id === parsedData.choiceId) {
+                if (gameState.choices[key].onFinished) {
+                    gameState.choices[key].onFinished(parsedData);
+                }
+                break;
+            }
+        }
     }
-    // Broadcast
+    // Broadcast)
     if (skipBroadcast !== true) {
         broadcastGameState();
     }
