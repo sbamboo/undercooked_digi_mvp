@@ -198,7 +198,11 @@ let config = {
             1: {
                 "cardName": "Steal Hand",
                 "cardDescription": "Byt hand med en valfri spelare",
-                "action": (parsedData,affectedPlayers) => {}
+                "action": (parsedData,affectedPlayers) => {
+                    oldhand = [...gameState["data"][parsedData.sender]["hand"]]
+                    gameState["data"][parsedData.sender]["hand"] = gameState["data"][affectedPlayers[0]]["hand"]
+                    gameState["data"][affectedPlayers[0]]["hand"] = oldhand
+                }
             },
             2: {
                 "cardName": "Apocalyps",
