@@ -190,17 +190,31 @@ let config = {
             0: {
                 "cardName": "Reset",
                 "cardDescription": "Välj en spelare som lägger alla sina kort i botten av korthögen & tar 3 nyad",
-                "action": (parsedData) => {}
+                "action": (parsedData,affectedPlayers) => {
+                    affectedPlayers.forEach( (player) => {
+                        gameState["data"][player]["hand"] = [];
+                        randomizeHand(player);
+                    });
+                }
             },
             1: {
                 "cardName": "Steal Hand",
                 "cardDescription": "Byt hand med en valfri spelare",
-                "action": (parsedData) => {}
+                "action": (parsedData,affectedPlayers) => {
+                    oldhand = [...gameState["data"][parsedData.sender]["hand"]]
+                    gameState["data"][parsedData.sender]["hand"] = gameState["data"][affectedPlayers[0]]["hand"]
+                    gameState["data"][affectedPlayers[0]]["hand"] = oldhand
+                }
             },
             2: {
                 "cardName": "Apocalyps",
                 "cardDescription": "Alla lägger sina kort i botten av högen tar 3 nya kort",
-                "action": (parsedData) => {}
+                "action": (parsedData,affectedPlayers) => {
+                    affectedPlayers.forEach( (player) => {
+                        gameState["data"][player]["hand"] = [];
+                        randomizeHand(player);
+                    });
+                }
             }
         }
     }
@@ -863,6 +877,18 @@ function removeCardFromHand(playerId,cardId) {
 }
 
 
+// Function to randomize a hand
+function randomizeHand(playerId) {
+    const keys = Object.keys(obj);
+    const hand = [
+        keys[Math.floor(Math.random() * keys.length)],
+        keys[Math.floor(Math.random() * keys.length)],
+        keys[Math.floor(Math.random() * keys.length)]
+    ];
+    gameState.data[playerId]["hand"] = hand;
+}
+
+
 // Main tick function
 function tick() {
     gameRestartsIndex++;
@@ -961,6 +987,11 @@ function handleAction(parsedData) {
     }
     const affectedPlayers = keyfilterlist_multiple( Object.keys(gameState["data"]), parsedData.affects );
     log(`Got action event with cardId '${parsedData.cardId}' with sender '${parsedData.sender}' which tagets [${parsedData.affects}] affecting [${affectedPlayers}]!`);
+    
+    if (Object.keys(config.registry["actions"]).includes(parsedData.cardId)) {
+        config.registry["actions"][parsedData.cardId]["action"](parsedData,affectedPlayers);
+    }
+    broadcastGameState();
 }
 
 // Function to handle a LockIn request by the client
@@ -975,6 +1006,9 @@ function handleLockIn(parsedData) {
     // ´parsedData.cardId´ should be the `cardId` requested to lockin.
     //
     log(`Got lockin event with cardId '${parsedData.cardId}' with sender '${parsedData.sender}'!`);
+    lockinCardForPlayerRecipe(parsedData.sender,parsedData.cardId);
+    removeCardFromHand(playerId,parsedData.cardId);
+    broadcastGameState();
 }
 
 // Function to handle a steal request by the client
@@ -989,6 +1023,7 @@ function handleSteal(parsedData) {
     // ´parsedData.cardId´ should be the `cardId` placed on the "table" by the player.
     //
     log(`Got steal event with cardId '${parsedData.cardId}' with sender '${parsedData.sender}'!`);
+    
 }
 
 // Function to handle a gamble request by the client
