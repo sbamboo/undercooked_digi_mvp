@@ -91,6 +91,9 @@
     .nomargin *{
       margin: 0;
     }
+    #clientLog {
+      width: 80%;
+    }
   </style>
 </head>
 <body>
@@ -99,6 +102,10 @@
   <!-- Add a container to display the prettified JSON response -->
   <label for="response">Last Response: </label>
   <pre id="response"></pre>
+  <div class="hflex">
+    <label for="clientLog">Last client log: </label>
+    <input type="text" id="clientLog" disabled>
+  </div>
 
   <!-- Add text box for server address and a reconnect button -->
   <div id="serverBox" class="vflex">
@@ -212,6 +219,12 @@
     let socket;
     var lastEpoch = null;
 
+    function log(msg) {
+      const clientlog = document.getElementById("clientLog");
+      clientlog.value = msg;
+      console.log(msg);
+    }
+
     // Function to initialize or reconnect the WebSocket connection
     function connectWebSocket() {
       const serverAddress = document.getElementById('serverAddress').value;
@@ -249,7 +262,7 @@
 
       // When the connection is established
       socket.onopen = () => {
-        console.log('Connected to WebSocket server');
+        log('Connected to WebSocket server');
 
         // Send a "connect" event without a username
         const data = { event: 'connect' };
@@ -265,7 +278,7 @@
         }
         const connectMessage = JSON.stringify(data);
         socket.send(connectMessage);
-        console.log('Sent connect event with dev username');
+        log('Sent connect event with dev username');
       };
 
       // When a message is received from the server
@@ -286,7 +299,7 @@
           }
 
           if (jsonData._req) {
-            
+
             if (jsonData._req.handShakeInfo) {
               if (jsonData._req.handShakeInfo.format) {
                 const protverDisplay = document.getElementById("protver");
@@ -321,7 +334,7 @@
 
       // When the connection is closed
       socket.onclose = () => {
-        console.log('Disconnected from WebSocket server');
+        log('Disconnected from WebSocket server');
       };
 
       // When an error occurs
@@ -404,9 +417,9 @@
         // Send a "start" event
         const startMessage = JSON.stringify({ event: 'start' });
         socket.send(startMessage);
-        console.log('Sent start event');
+        log('Sent start event');
       } else {
-        console.log('WebSocket is not open. Unable to send start event.');
+        log('WebSocket is not open. Unable to send start event.');
       }
     });
 
@@ -416,9 +429,9 @@
         // Send a "stop" event
         const stopMessage = JSON.stringify({ event: 'stop' });
         socket.send(stopMessage);
-        console.log('Sent stop event');
+        log('Sent stop event');
       } else {
-        console.log('WebSocket is not open. Unable to send stop event.');
+        log('WebSocket is not open. Unable to send stop event.');
       }
     });
 
@@ -429,11 +442,11 @@
         const data = { event: 'disconnect' };
         const disconnectMessage = JSON.stringify(data);
         socket.send(disconnectMessage);
-        console.log('Sent disconnect event');
+        log('Sent disconnect event');
         // Optionally close the WebSocket connection after sending the event
         socket.close();
       } else {
-        console.log('WebSocket is not open. Unable to send disconnect event.');
+        log('WebSocket is not open. Unable to send disconnect event.');
       }
     });
 
@@ -476,7 +489,7 @@
       };
       const connectMessage = JSON.stringify(data);
       socket.send(connectMessage);
-      console.log(`Sent action ${document.getElementById('event_action_cardid').value} for ${document.getElementById('event_action_affects').value.replace(" ","").split(";")}`)
+      log(`Sent action ${document.getElementById('event_action_cardid').value} for ${document.getElementById('event_action_affects').value.replace(" ","").split(";")}`)
     });
 
     // Add click event listener to the lockin button
@@ -487,7 +500,7 @@
       };
       const connectMessage = JSON.stringify(data);
       socket.send(connectMessage);
-      console.log(`Sent lockin for ${document.getElementById('event_lockin_cardid').value}`)
+      log(`Sent lockin for ${document.getElementById('event_lockin_cardid').value}`)
     });
 
     // Add click event listener to the steal button
@@ -499,7 +512,7 @@
       };
       const connectMessage = JSON.stringify(data);
       socket.send(connectMessage);
-      console.log(`Sent steal for ${document.getElementById('event_steal_cardid').value} for ${document.getElementById('event_steal_affects').value.replace(" ","").split(";")}`)
+      log(`Sent steal for ${document.getElementById('event_steal_cardid').value} for ${document.getElementById('event_steal_affects').value.replace(" ","").split(";")}`)
     });
 
     // Add click event listener to the gamble button
@@ -510,7 +523,7 @@
       };
       const connectMessage = JSON.stringify(data);
       socket.send(connectMessage);
-      console.log(`Sent gamble for ${document.getElementById('event_gamble_cardid').value}`)
+      log(`Sent gamble for ${document.getElementById('event_gamble_cardid').value}`)
     });
   </script>
 </body>

@@ -849,28 +849,32 @@ function getRecipeForPlayer(playerId) {
 }
 // Function to complete a recipe and yeild the points to the player
 function completeRecipeForPlayer(playerId) {
-    gameState.data[playerId]["recipe"]["completed"] = true;
-    gameState.data[playerId]["points"] += config.registry["recipes"][ gameState.data[playerId]["recipe"]["id"] ]["points"];
+    if (gameState.data[playerId]["recipe"]) {
+        gameState.data[playerId]["recipe"]["completed"] = true;
+        gameState.data[playerId]["points"] += config.registry["recipes"][ gameState.data[playerId]["recipe"]["id"] ]["points"];
+    }
 }
 // Function to lockin a card for a recipe
 // returns if recipe got autocompleted or not.
 function lockinCardForPlayerRecipe(playerId,cardId,autoComplete=true) {
-    gameState.data[playerId]["recipe"]["locker"].push(cardId);
-    if (autoComplete === true) {
-        missing = false;
-        config.registry["recipes"][ gameState.data[playerId]["recipe"]["id"] ]["ingredients"].forEach( (ingredient) => {
-            if (!gameState.data[playerId]["recipe"]["locker"].includes(ingredient)) {
-                if (missing !== true) {
-                    missing = true;
+    if (gameState.data[playerId]["recipe"]) {
+        gameState.data[playerId]["recipe"]["locker"].push(cardId);
+        if (autoComplete === true) {
+            missing = false;
+            config.registry["recipes"][ gameState.data[playerId]["recipe"]["id"] ]["ingredients"].forEach( (ingredient) => {
+                if (!gameState.data[playerId]["recipe"]["locker"].includes(ingredient)) {
+                    if (missing !== true) {
+                        missing = true;
+                    }
                 }
+            });
+            if (missing === false) {
+                completeRecipeForPlayer(playerId);
             }
-        });
-        if (missing === false) {
-            completeRecipeForPlayer(playerId);
+            return !missing;
+        } else {
+            return false;
         }
-        return !missing;
-    } else {
-        return false;
     }
 }
 
