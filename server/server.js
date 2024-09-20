@@ -13,6 +13,7 @@ const configFile = './config.json';
 // Imports
 const WebSocket = require('ws');
 const fs = require('fs');
+const { nextTick } = require('process');
 
 // Setup default deffinitions
 let config = {
@@ -921,6 +922,8 @@ function handleSelection(parsedData,skipBroadcast=false) {
         if (Object.keys(config["selectEventCauses"]).includes(parsedData.cause)) {
             config["selectEventCauses"][parsedData.cause](parsedData);
         }
+    } else {
+        parsedData.choiceId
     }
     // Broadcast
     if (skipBroadcast !== true) {
@@ -999,5 +1002,23 @@ function handleGamble(parsedData) {
     //
     // (´parsedData.cardId´ should always be `-1` thus does not matter for this function.)
     //
+
+    players = Object.keys(gameState["data"]);
+    currentPlayerIndex = players.indexOf(parsedData.sender);
+    nextPlayerIndex = currentPlayerIndex + 1;
+
+    if(nextPlayerIndex === players.length){
+        nextPlayerIndex = 0;
+    }
+
+    player = gameState["data"][players[currentPlayerIndex]];
+    nextPlayer = gameState["data"][players[nextPlayerIndex]];
+    
+    console.log(nextPlayer);
+    nextPlayerChoiceId = postChoiceAmnt(nextPlayer,3)[1];
+    console.log(player.hand);
+    
+
     log(`Got gamble event with cardId '${parsedData.cardId}' with sender '${parsedData.sender}'!`);
+    broadcastGameState();
 }
