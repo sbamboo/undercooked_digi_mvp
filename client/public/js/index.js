@@ -407,6 +407,25 @@ function main(scene,event,parsed) {
         if (parsed.choices.length > 0) {
             showCardChoice( parsed.choices[playerId], playerId );
         }
+
+        //Collection of data for the UI elements representing the hand(0:{"cardID":"0", "cardName":"Ägg", })
+        playerHandData = [];
+        playerHandUI = document.getElementsByClassName("card");
+        for (let i = 0; i < 3; i++) {
+            //
+            UICardID = parsed.data[playerId].hand[i];
+            if(UICardID == null){   
+                break;
+            }
+            UICardName = registry.cards[parsed.data[playerId].hand[i]].cardName;
+            
+            //The HTML element
+            UICard = playerHandUI[i].getElementsByClassName("title")[1];
+            UICard.innerHTML = UICardName;
+
+            playerHandData.push(UICardID, UICardName, UICard);
+        }
+        console.log(playerHandData);
     }
 }
 
