@@ -1,11 +1,11 @@
-// Undercooked Networking-Test 1 Client, written 2024-09-03.
-// Protocol Format Version: 1
+// Undercooked Networking Client, written 2024-09-20.
+// Protocol Format Version: 3
 //
 // Note: Assets registry should be an object with fields for each id-typ ("recipe","card",...) with objects with mappings.
 //       it should be named registry.
 //
 
-const protocolformat = 1;
+const protocolformat = 3;
 
 var registry = {
     "cards": {

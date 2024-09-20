@@ -1,6 +1,6 @@
-// Undercooked Networking-Test 1 Server, written 2024-09-03.
-// Protocol Format Version: 1
-// Config Format Version: 1
+// Undercooked Networking Server, written 2024-09-20.
+// Protocol Format Version: 3
+// Config Format Version: 3
 //
 
 
@@ -17,7 +17,7 @@ const { nextTick } = require('process');
 
 // Setup default deffinitions
 let config = {
-    "format": 1,
+    "format": 3,
     "port": default_port,
     "host": default_host,
     "tickRate": default_tickRate, // How fast the 'tick()' updater function should be called
@@ -403,13 +403,14 @@ function broadcastGameState(override_recipient=null,isConnectAnswer=false) {
         localGameState["_req"] = {
             "timestamp": timestamp.toString(),
             "index": broadcastIndex,
-            "restarts": gameRestartsIndex
+            "restarts": gameRestartsIndex,
+            "rate": config["tickRate"]
         }
         if (recipient != null) {
             localGameState["_req"]["recipient"] = recipient;
         }
         if (isConnectAnswer === true) {
-            localGameState["_req"]["handShakeInfo"] = config["handShakeInfo"];
+            localGameState["_req"]["handShakeInfo"] = {...config["handShakeInfo"],...{"format":config["format"]}};
         }
         // Note: The following code adds stuff to the 'currentFilters' to be filtered from the
         //       sent out gameState. This list is applied from first entry to last, meaning
@@ -779,7 +780,7 @@ function resetGameState() {
 // Function to post a choice of cards (cards will be sent to client)
 // Returns the playerid and the choiceid as a list. => [playerid,choiceid]
 // Note! This function does not broadcast and `posted` will be index of last broadcast!
-function postChoice(playerid,listOfCardIds,hidden=false,onFinished=null) {
+function postChoice(playerid,listOfCardIds,hidden=false,onFinished=null,onFinishedData=null,context="unknown") {
     const timestamp = Date.now();
     const id = timestamp.toString();
     gameState["choices"][playerid] = {
@@ -789,14 +790,16 @@ function postChoice(playerid,listOfCardIds,hidden=false,onFinished=null) {
         "cards": listOfCardIds,
         "hidden": hidden,
         "cardAmnt": null,
-        "onFinished": onFinished
+        "onFinished": onFinished,
+        "onFinishedData": onFinishedData,
+        "context": context
     };
     return [playerid,id];
 }
 // Function to post a choice of cards (same as postChoice but just takes an amount to not send cards to client)
 // also returns a list of [playerid,choiceid]
 // Note! This function does not broadcast and `posted` will be index of last broadcast!
-function postChoiceAmnt(playerid,amntOfCards,onFinished=null) {
+function postChoiceAmnt(playerid,amntOfCards,onFinished=null,onFinishedData=null,context="unknown") {
     const timestamp = Date.now();
     const id = timestamp.toString();
     gameState["choices"][playerid] = {
@@ -806,7 +809,9 @@ function postChoiceAmnt(playerid,amntOfCards,onFinished=null) {
         "cards": [],
         "hidden": true,
         "cardAmnt": amntOfCards,
-        "onFinished": onFinished
+        "onFinished": onFinished,
+        "onFinishedData": onFinishedData,
+        "context": context
     };
     return [playerid,id];
 }
@@ -954,7 +959,7 @@ function handleSelection(parsedData,skipBroadcast=false) {
         for (const [key,value] of Object.entries(gameState.choices)) {
             if (value.id === parsedData.choiceId) {
                 if (gameState.choices[key].onFinished) {
-                    gameState.choices[key].onFinished(parsedData);
+                    gameState.choices[key].onFinished(parsedData,gameState.choices[key].onFinishedData);
                 }
                 break;
             }
@@ -1031,8 +1036,65 @@ function handleSteal(parsedData) {
     //
     // ´parsedData.cardId´ should be the `cardId` placed on the "table" by the player.
     //
-    log(`Got steal event with cardId '${parsedData.cardId}' with sender '${parsedData.sender}'!`);
-    
+    // `parsedData.affected` should be a list of the targets of the effects,
+    //    where the string "*" means everyone and the string "!<playerid>" is everyone
+    //    except a sertain player, "<playerids>" would be a specific player.
+    //    The `keyfilterlist(<list>,<filterStr>)` function takes one string and returns
+    //      the list entries selected by that key.
+    //    To quickely filter the entire `parsedData.affected` list, one can call
+    //      `keyfilterlist_multiple(<list>,<filterList>)` which runs through each entry
+    //      in the filterList and merges non-already-selected entries.
+    //    Example:
+    //      Given the players ['one','two','three']
+    //      and the filters   ['!two']
+    //      Should return     ['three','one'] 
+    //
+    if (!parsedData.affects) {
+        log(`Recieved steal event without affects-targets!`);
+        return;
+    }
+    const affectedPlayers = keyfilterlist_multiple( Object.keys(gameState["data"]), parsedData.affects );
+    log(`Got steal event with cardId '${parsedData.cardId}' with sender '${parsedData.sender}' which tagets [${parsedData.affects}] affecting [${affectedPlayers}]!`);
+    // Select from own hand card to putdown
+    postChoice(
+        parsedData.sender,
+        gameState.data[parsedData.sender]["hand"],
+        false,
+        // Once card has been selected
+        (selectEvent_parsedData,data) => {
+            const selectedFromSenderHand = selectEvent_parsedData.cardId;
+            const target = data.affects;
+            // "put card on table"
+            removeCardFromHand(data.sender,selectedFromSenderHand);
+            // Select from targets hand (hidden)
+            postChoiceAmnt(
+                data.sender,
+                gameState.data[target]["hand"].length,
+                // Once card has been selected
+                (selectEvent_parsedData,data) => {
+                    const selectedFromTargetHand = selectEvent_parsedData.cardId;
+                    // "give card to sender"
+                    removeCardFromHand(data.target,selectedFromTargetHand);
+                    gameState.data[data.sender]["hand"].push(selectedFromTargetHand);
+                    // "take card up from table"
+                    gameState.data[data.target]["hand"].push(data.selectedFromSenderHand);
+                    // update
+                    broadcastGameState();
+                },
+                {
+                    "sender": data.sender,
+                    "target": target,
+                    "selectedFromSenderHand": selectedFromSenderHand
+                },
+                context = "steal.takefromtarget"
+            )
+        },
+        {
+            "sender": parsedData.sender,
+            "affects": affectedPlayers[0]
+        },
+        context = "steal.putdown"
+    );
 }
 
 // Function to handle a gamble request by the client

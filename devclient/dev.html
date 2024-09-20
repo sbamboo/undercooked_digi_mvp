@@ -88,6 +88,9 @@
       margin-top: 20px;
       margin-bottom: 30px;
     }
+    .nomargin *{
+      margin: 0;
+    }
   </style>
 </head>
 <body>
@@ -110,6 +113,12 @@
     <div class="hflex">
       <button id="reconnectButton">Send.Event.Connect </button>
       <button id="disconnectButton">Send.Event.Disconnect</button>
+    </div>
+    <div class="nomargin">
+      <p id="time-diff">Time between timestamps: NaN</p>
+      <p id="server-time-offset">(Server reports rate: NaN, offset: NaN)</p>
+      <p id="time-delay">Delay since sent: NaN:ms</p>
+      <p id="protver">Server config/protocol version: NaN</p>
     </div>
   </div>
 
@@ -148,7 +157,7 @@
     <div class="hflex">
       <label for="event_action_affects">Action.Affects (Split by ;): </label>
       <input type="text" id="event_action_affects">
-      <p class="values-comment">#<i>!&lt;playerid&gt;</i> selects everyone else</p>
+      <p class="values-comment">#<i>!&lt;playerid&gt;</i> selects everyone else, <i>*</i> select all</p>
     </div>
     <button id="actionButton">Send.Event.Action</button>
 
@@ -165,6 +174,11 @@
       <label for="event_steal_cardid">Steal.CardId: </label>
       <input type="text" id="event_steal_cardid">
       <p class="values-comment">#HandCardToPutDown#</p>
+    </div>
+    <div class="hflex">
+      <label for="event_steal_affects">Steal.Affects (Split by ;): </label>
+      <input type="text" id="event_steal_affects">
+      <p class="values-comment">#<i>!&lt;playerid&gt;</i> selects everyone else, <i>*</i> select all</p>
     </div>
     <button id="stealButton">Send.Event.Steal</button>
 
@@ -196,6 +210,7 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/highlight.min.js"></script>
   <script>
     let socket;
+    var lastEpoch = null;
 
     // Function to initialize or reconnect the WebSocket connection
     function connectWebSocket() {
@@ -270,6 +285,30 @@
             updatePlayerList(jsonData.data);
           }
 
+          if (jsonData._req) {
+            
+            if (jsonData._req.handShakeInfo) {
+              if (jsonData._req.handShakeInfo.format) {
+                const protverDisplay = document.getElementById("protver");
+                protverDisplay.innerText = `Server config/protocol version: ${jsonData._req.handShakeInfo.format}`;
+              }
+            }
+
+            if (jsonData._req.timestamp) {
+              if (lastEpoch !== null) {
+                const timeDiffDisplay = document.getElementById("time-diff");
+                const serverTimeOffsetDisplay = document.getElementById("server-time-offset");
+                timeDiffDisplay.innerText = `Time between timestamps: ${formatTimeDifference(lastEpoch,jsonData._req.timestamp)}`;
+                if (jsonData._req.rate) {
+                  serverTimeOffsetDisplay.innerText = `(Server reports rate: ${jsonData._req.rate}ms, offset: ${(jsonData._req.timestamp-lastEpoch)-jsonData._req.rate}ms)`;
+                }
+              }
+              const timeDelayDisplay = document.getElementById("time-delay");
+              timeDelayDisplay.innerText = `Delay since sent: ${getCurrentTimeDifference(jsonData._req.timestamp)}`;
+              lastEpoch = jsonData._req.timestamp;
+            }
+          }
+
           // Update the state text box if 'state' key exists
           if (jsonData.state) {
             updateState(jsonData.state);
@@ -298,6 +337,59 @@
       currentURL.port = '3000';
       const defaultAddress = currentURL.toString();
       document.getElementById('serverAddress').value = defaultAddress;
+    }
+
+    function formatTimeDifference(epoch1, epoch2) {
+      // Convert strings to numbers
+      const time1 = Number(epoch1);
+      const time2 = Number(epoch2);
+
+      // Calculate the absolute time difference in milliseconds
+      const diffInMilliseconds = Math.abs(time1 - time2);
+
+      // Calculate days, hours, minutes, seconds, and milliseconds
+      const days = Math.floor(diffInMilliseconds / (24 * 3600 * 1000));
+      const hours = Math.floor((diffInMilliseconds % (24 * 3600 * 1000)) / (3600 * 1000));
+      const minutes = Math.floor((diffInMilliseconds % (3600 * 1000)) / (60 * 1000));
+      const seconds = Math.floor((diffInMilliseconds % (60 * 1000)) / 1000);
+      const milliseconds = diffInMilliseconds % 1000;
+
+      // Create the formatted time difference string based on conditions
+      let formatted = '';
+
+      if (days > 0) {
+        formatted += `${days}day${days > 1 ? 's' : ''}, `;
+      }
+
+      if (hours > 0 || days > 0) {
+        formatted += `${hours}hour${hours !== 1 ? 's' : ''}, `;
+      }
+
+      if (minutes > 0 || hours > 0 || days > 0) {
+        formatted += `${minutes}min, `;
+      }
+
+      if (seconds > 0 || minutes > 0 || hours > 0 || days > 0) {
+        formatted += `${seconds}sec, `;
+      }
+
+      formatted += `${milliseconds}ms`;
+
+      return formatted;
+    }
+
+    function getCurrentTimeDifference(epoch) {
+      // Convert the input epoch string to a number
+      const pastTime = Number(epoch);
+      
+      // Get the current time in milliseconds since the Unix epoch
+      const currentTime = Date.now();
+      
+      // Calculate the difference in milliseconds
+      const diffInMilliseconds = Math.abs(currentTime - pastTime);
+      
+      // Return the formatted difference
+      return `${diffInMilliseconds}ms`;
     }
 
     // Call initializeServerAddress to set the default value
@@ -402,11 +494,12 @@
     document.getElementById('stealButton').addEventListener('click', () => {
       const data = {
         "event": "steal",
-        "cardId": document.getElementById('event_steal_cardid').value
+        "cardId": document.getElementById('event_steal_cardid').value,
+        "affects": document.getElementById('event_steal_affects').value.replace(" ","").split(";"),
       };
       const connectMessage = JSON.stringify(data);
       socket.send(connectMessage);
-      console.log(`Sent steal for ${document.getElementById('event_steal_cardid').value}`)
+      console.log(`Sent steal for ${document.getElementById('event_steal_cardid').value} for ${document.getElementById('event_steal_affects').value.replace(" ","").split(";")}`)
     });
 
     // Add click event listener to the gamble button
