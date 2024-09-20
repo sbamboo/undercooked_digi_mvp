@@ -23,7 +23,7 @@ let config = {
     "tickRate": default_tickRate, // How fast the 'tick()' updater function should be called
     "debug_skipBroadcastLogging": true, // If true broadcastGameState won't con-log.
     "filterIps": true, // Filter ip's from being sent to client?
-    "filterPlayerData": false, // If a recipient is known should the server filter other players data from being sent to the recipient?
+    "filterPlayerData": true, // If a recipient is known should the server filter other players data from being sent to the recipient?
     "unknownRecipientSendMode": "None", // If the recipient is unknown should we send all players data or none? ("None" or "All")
     "disconnectEventHandlerMode": "client", // Which identification-techinque should be used when a disconnect event is recieved ("Client" or "PlayerId")
     "keepAliveWsOnDisconnectEvent": false, // Should the server not close the websocket-connection apon a disconnect event?
