@@ -191,7 +191,8 @@ let config = {
                 "cardDescription": "Välj en spelare som lägger alla sina kort i botten av korthögen & tar 3 nyad",
                 "action": (parsedData,affectedPlayers) => {
                     affectedPlayers.forEach( (player) => {
-                        gameState["data"][player]["hand"] = []
+                        gameState["data"][player]["hand"] = [];
+                        randomizeHand(player);
                     });
                 }
             },
