@@ -189,17 +189,17 @@ let config = {
             0: {
                 "cardName": "Reset",
                 "cardDescription": "Välj en spelare som lägger alla sina kort i botten av korthögen & tar 3 nyad",
-                "action": (parsedData) => {}
+                "action": (parsedData,affectedPlayers) => {}
             },
             1: {
                 "cardName": "Steal Hand",
                 "cardDescription": "Byt hand med en valfri spelare",
-                "action": (parsedData) => {}
+                "action": (parsedData,affectedPlayers) => {}
             },
             2: {
                 "cardName": "Apocalyps",
                 "cardDescription": "Alla lägger sina kort i botten av högen tar 3 nya kort",
-                "action": (parsedData) => {}
+                "action": (parsedData,affectedPlayers) => {}
             }
         }
     }
@@ -862,6 +862,12 @@ function removeCardFromHand(playerId,cardId) {
 }
 
 
+// Function to randomize a hand
+function randomizeHand(playerId) {
+    
+}
+
+
 // Main tick function
 function tick() {
     gameRestartsIndex++;
@@ -958,6 +964,10 @@ function handleAction(parsedData) {
     }
     const affectedPlayers = keyfilterlist_multiple( Object.keys(gameState["data"]), parsedData.affects );
     log(`Got action event with cardId '${parsedData.cardId}' with sender '${parsedData.sender}' which tagets [${parsedData.affects}] affecting [${affectedPlayers}]!`);
+    
+    if (Object.keys(config.registry["actions"]).includes(parsedData.cardId)) {
+        config.registry["actions"][parsedData.cardId]["action"](parsedData,affectedPlayers);
+    }
 }
 
 // Function to handle a LockIn request by the client
@@ -972,6 +982,8 @@ function handleLockIn(parsedData) {
     // ´parsedData.cardId´ should be the `cardId` requested to lockin.
     //
     log(`Got lockin event with cardId '${parsedData.cardId}' with sender '${parsedData.sender}'!`);
+    lockinCardForPlayerRecipe(parsedData.sender,parsedData.cardId);
+    removeCardFromHand(playerId,parsedData.cardId);
 }
 
 // Function to handle a steal request by the client
