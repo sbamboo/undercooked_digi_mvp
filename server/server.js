@@ -864,7 +864,13 @@ function removeCardFromHand(playerId,cardId) {
 
 // Function to randomize a hand
 function randomizeHand(playerId) {
-    
+    const keys = Object.keys(obj);
+    const hand = [
+        keys[Math.floor(Math.random() * keys.length)],
+        keys[Math.floor(Math.random() * keys.length)],
+        keys[Math.floor(Math.random() * keys.length)]
+    ];
+    gameState.data[playerId]["hand"] = hand;
 }
 
 
