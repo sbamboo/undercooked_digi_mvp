@@ -209,7 +209,10 @@ let config = {
                 "cardName": "Apocalyps",
                 "cardDescription": "Alla lägger sina kort i botten av högen tar 3 nya kort",
                 "action": (parsedData,affectedPlayers) => {
-                    
+                    affectedPlayers.forEach( (player) => {
+                        gameState["data"][player]["hand"] = [];
+                        randomizeHand(player);
+                    });
                 }
             }
         }
@@ -1017,7 +1020,7 @@ function handleSteal(parsedData) {
     // ´parsedData.cardId´ should be the `cardId` placed on the "table" by the player.
     //
     log(`Got steal event with cardId '${parsedData.cardId}' with sender '${parsedData.sender}'!`);
-
+    
 }
 
 // Function to handle a gamble request by the client
