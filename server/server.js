@@ -189,7 +189,11 @@ let config = {
             0: {
                 "cardName": "Reset",
                 "cardDescription": "Välj en spelare som lägger alla sina kort i botten av korthögen & tar 3 nyad",
-                "action": (parsedData,affectedPlayers) => {}
+                "action": (parsedData,affectedPlayers) => {
+                    affectedPlayers.forEach( (player) => {
+                        gameState["data"][player]["hand"] = []
+                    });
+                }
             },
             1: {
                 "cardName": "Steal Hand",
