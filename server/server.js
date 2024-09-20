@@ -779,7 +779,7 @@ function resetGameState() {
 // Function to post a choice of cards (cards will be sent to client)
 // Returns the playerid and the choiceid as a list. => [playerid,choiceid]
 // Note! This function does not broadcast and `posted` will be index of last broadcast!
-function postChoice(playerid,listOfCardIds,hidden=false) {
+function postChoice(playerid,listOfCardIds,hidden=false,onFinished=null) {
     const timestamp = Date.now();
     const id = timestamp.toString();
     gameState["choices"][playerid] = {
@@ -788,14 +788,15 @@ function postChoice(playerid,listOfCardIds,hidden=false) {
         "status": "waiting",
         "cards": listOfCardIds,
         "hidden": hidden,
-        "cardAmnt": null
+        "cardAmnt": null,
+        "onFinished": onFinished
     };
     return [playerid,id];
 }
 // Function to post a choice of cards (same as postChoice but just takes an amount to not send cards to client)
 // also returns a list of [playerid,choiceid]
 // Note! This function does not broadcast and `posted` will be index of last broadcast!
-function postChoiceAmnt(playerid,amntOfCards) {
+function postChoiceAmnt(playerid,amntOfCards,onFinished=null) {
     const timestamp = Date.now();
     const id = timestamp.toString();
     gameState["choices"][playerid] = {
@@ -804,7 +805,8 @@ function postChoiceAmnt(playerid,amntOfCards) {
         "status": "waiting",
         "cards": [],
         "hidden": true,
-        "cardAmnt": amntOfCards
+        "cardAmnt": amntOfCards,
+        "onFinished": onFinished
     };
     return [playerid,id];
 }
