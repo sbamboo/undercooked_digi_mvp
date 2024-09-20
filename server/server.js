@@ -21,8 +21,9 @@ let config = {
     "port": default_port,
     "host": default_host,
     "tickRate": default_tickRate, // How fast the 'tick()' updater function should be called
+    "debug_skipBroadcastLogging": true, // If true broadcastGameState won't con-log.
     "filterIps": true, // Filter ip's from being sent to client?
-    "filterPlayerData": true, // If a recipient is known should the server filter other players data from being sent to the recipient?
+    "filterPlayerData": false, // If a recipient is known should the server filter other players data from being sent to the recipient?
     "unknownRecipientSendMode": "None", // If the recipient is unknown should we send all players data or none? ("None" or "All")
     "disconnectEventHandlerMode": "client", // Which identification-techinque should be used when a disconnect event is recieved ("Client" or "PlayerId")
     "keepAliveWsOnDisconnectEvent": false, // Should the server not close the websocket-connection apon a disconnect event?
@@ -32,6 +33,7 @@ let config = {
     "playerIdRetriver": "Short", // How should player id's be generated? "Incremental" +1 the amount of players, "UUID" generates a full UUID, "Short" generates a 8-char long UUID. Note, short/uuid should be less likely to asign the same id to diffrent players, but might be harder for the server to keep track of.
     "includePortInClientIP": false, // Should the port be added to the ip stored for each client? Note, this would allow more then once client per IP, but usualy port numbers aren't persistant across page-refreshes which breaks re-connect.
     "fuzzyMatchIpByName": true, // Attempts to fix re-connects when ports are present in the client-ip, by matching for the non-port-ip-adress and the requestedName (trimmed of _), should work but can fault if more then one client has the same name, or if a client sets an empty name.
+    "randomizeOnEmptyPool": false, // If true, and a randomizer-pool is empty, a random entry will be generated.
     "startingBroadcastIndex": 0, // Leave at 0
     // handShakeInfo is sent at the first update given to a client after it connects, this might for example contain the server-protocol-version.
     "handShakeInfo": {},
@@ -52,7 +54,7 @@ let config = {
     "playerData_template": {
         "status": "inactive", // "inactive" or "active"
         "name": "player", // username for a player
-        "hand": [0], // list of cardId
+        "hand": [], // list of cardId
         "recipe": {}, // the recipies a player has and if they are completed or not.
         "points": 0, // the game-points a player has
         "_dox_": null, // internal, used for identifing a player
@@ -83,111 +85,112 @@ let config = {
         "steal": handleSteal,
         "gamble": handleGamble
     },
+    // Pools
+    "pools": {
+        "card": [],
+        "recipe": []
+    },
     // Registry
     "registry": {
         "cards": {
             0: {
-                "cardName": "Ägg"
+                "type": "card",
+                "cardName": "Ägg",
+                "poolOccurence": 1
             },
             1: {
-                "cardName": "Bär"
+                "type": "card",
+                "cardName": "Bär",
+                "poolOccurence": 1
             },
             3: {
-                "cardName": "Tomat"
+                "type": "card",
+                "cardName": "Tomat",
+                "poolOccurence": 1
             },
             4: {
-                "cardName": "Skål"
+                "type": "card",
+                "cardName": "Skål",
+                "poolOccurence": 1
             },
             5: {
-                "cardName": "Frukt"
+                "type": "card",
+                "cardName": "Frukt",
+                "poolOccurence": 1
             },
             6: {
-                "cardName": "Fisk"
+                "type": "card",
+                "cardName": "Fisk",
+                "poolOccurence": 1
             },
             7: {
-                "cardName": "Nudlar"
+                "type": "card",
+                "cardName": "Nudlar",
+                "poolOccurence": 1
             },
             8: {
-                "cardName": "Broccoli"
+                "type": "card",
+                "cardName": "Broccoli",
+                "poolOccurence": 1
             },
             9: {
-                "cardName": "Rött Kött"
+                "type": "card",
+                "cardName": "Rött Kött",
+                "poolOccurence": 1
             },
             10: {
-                "cardName": "Pasta"
+                "type": "card",
+                "cardName": "Pasta",
+                "poolOccurence": 1
             },
             11: {
-                "cardName": "Sallad"
+                "type": "card",
+                "cardName": "Sallad",
+                "poolOccurence": 1
             },
             12: {
-                "cardName": "Gurka"
+                "type": "card",
+                "cardName": "Gurka",
+                "poolOccurence": 1
             },
             13: {
-                "cardName": "Räkor"
+                "type": "card",
+                "cardName": "Räkor",
+                "poolOccurence": 1
             },
             14: {
-                "cardName": "Fågel Kött"
+                "type": "card",
+                "cardName": "Fågel Kött",
+                "poolOccurence": 1
             },
             15: {
-                "cardName": "Glass"
+                "type": "card",
+                "cardName": "Glass",
+                "poolOccurence": 1
             },
             16: {
-                "cardName": "Potatis"
+                "type": "card",
+                "cardName": "Potatis",
+                "poolOccurence": 1
             },
             17: {
-                "cardName": "Strut"
+                "type": "card",
+                "cardName": "Strut",
+                "poolOccurence": 1
             },
             18: {
-                "cardName": "Grönsaker"
+                "type": "card",
+                "cardName": "Grönsaker",
+                "poolOccurence": 1
             },
             19: {
-                "cardName": "Räkor"
-            }
-        },
-        "recipes": {
-            0: {
-                "recipeName": "Pastasallad",
-                "ingredients":[10,11],
-                "points": 1
+                "type": "card",
+                "cardName": "Räkor",
+                "poolOccurence": 1
             },
-            1: {
-                "recipeName": "Köttgryta",
-                "ingredients":[18,9,4],
-                "points": 2
-            },
-            2: {
-                "omelett": "Ägg",
-                "ingredients":[0],
-                "points": 1
-            },
-            2: {
-                "recipeName": "Glasstrut",
-                "ingredients":[15,17],
-                "points": 1
-            },
-            3: {
-                "recipeName": "Carbonara",
-                "ingredients":[10,9,0],
-                "points": 2
-            },
-            4: {
-                "recipeName": "Rä-Rä-Rä-Räksallad",
-                "ingredients":[19,11],
-                "points": 1
-            },
-            5: {
-                "recipeName": "Köttbullar & Potatismos",
-                "ingredients":[16,9],
-                "points": 1
-            },
-            6: {
-                "recipeName": "Fruktsallad",
-                "ingredients":[5,4],
-                "points": 1
-            }
-        },
-        "actions": {
-            0: {
+
+            20: {
+                "type": "action",
                 "cardName": "Reset",
                 "cardDescription": "Välj en spelare som lägger alla sina kort i botten av korthögen & tar 3 nyad",
                 "action": (parsedData,affectedPlayers) => {
@@ -195,18 +198,24 @@ let config = {
                         gameState["data"][player]["hand"] = [];
                         randomizeHand(player);
                     });
-                }
+                },
+                // pls note, occurence is not a weight but the actuall amount in the pool
+                "poolOccurence": 1
             },
-            1: {
+            21: {
+                "type": "action",
                 "cardName": "Steal Hand",
                 "cardDescription": "Byt hand med en valfri spelare",
                 "action": (parsedData,affectedPlayers) => {
                     oldhand = [...gameState["data"][parsedData.sender]["hand"]]
                     gameState["data"][parsedData.sender]["hand"] = gameState["data"][affectedPlayers[0]]["hand"]
                     gameState["data"][affectedPlayers[0]]["hand"] = oldhand
-                }
+                },
+                // pls note, occurence is not a weight but the actuall amount in the pool
+                "poolOccurence": 1
             },
-            2: {
+            22: {
+                "type": "action",
                 "cardName": "Apocalyps",
                 "cardDescription": "Alla lägger sina kort i botten av högen tar 3 nya kort",
                 "action": (parsedData,affectedPlayers) => {
@@ -214,7 +223,59 @@ let config = {
                         gameState["data"][player]["hand"] = [];
                         randomizeHand(player);
                     });
-                }
+                },
+                // pls note, occurence is not a weight but the actuall amount in the pool
+                "poolOccurence": 1
+            }
+        },
+        "recipes": {
+            0: {
+                "recipeName": "Pastasallad",
+                "ingredients":[10,11],
+                "points": 1,
+                "poolOccurence": 1
+            },
+            1: {
+                "recipeName": "Köttgryta",
+                "ingredients":[18,9,4],
+                "points": 2,
+                "poolOccurence": 1
+            },
+            2: {
+                "omelett": "Ägg",
+                "ingredients":[0],
+                "points": 1,
+                "poolOccurence": 1
+            },
+            3: {
+                "recipeName": "Glasstrut",
+                "ingredients":[15,17],
+                "points": 1,
+                "poolOccurence": 1
+            },
+            4: {
+                "recipeName": "Carbonara",
+                "ingredients":[10,9,0],
+                "points": 2,
+                "poolOccurence": 1
+            },
+            5: {
+                "recipeName": "Rä-Rä-Rä-Räksallad",
+                "ingredients":[19,11],
+                "points": 1,
+                "poolOccurence": 1
+            },
+            6: {
+                "recipeName": "Köttbullar & Potatismos",
+                "ingredients":[16,9],
+                "points": 1,
+                "poolOccurence": 1
+            },
+            7: {
+                "recipeName": "Fruktsallad",
+                "ingredients":[5,4],
+                "points": 1,
+                "poolOccurence": 1
             }
         }
     }
@@ -377,7 +438,9 @@ function keyfilterlist_multiple(list,filterkeys) {
 // Function to broadcast the gameState to every connected player/client.
 // override_recipient is a playerid, if null it will match to the client.
 function broadcastGameState(override_recipient=null,isConnectAnswer=false) {
-    log(`Broadcasted update (i:${broadcastIndex})`, "route",1);
+    if (config["debug_skipBroadcastLogging"] !== true) {
+        log(`Broadcasted update (i:${broadcastIndex})`, "route",1);
+    }
     const timestamp = Date.now()
     // Iterate over al clients, try to identify recipient, convert the data to JSON, and send.
     i=0;
@@ -456,6 +519,47 @@ function addLoggedEvent(event) {
     }
 }
 
+// Function to generate the card pool
+function generateCardPool() {
+    config.pools.card = [];
+    Object.keys(config.registry.cards).forEach( (card) => {
+        if (config.registry.cards[card].poolOccurence > 1) {
+            for (let i = 0; i < config.registry.cards[card].poolOccurence; i++) {
+                config.pools.card.push(card);
+            }
+        } else {
+            config.pools.card.push(card);
+        }
+    });
+}
+// Function to generate recipe pool
+function generateRecipePool() {
+    config.pools.recipe = [];
+    Object.keys(config.registry.recipes).forEach( (recipe) => {
+        for (let i = 0; i < config.registry.recipes[recipe].poolOccurence; i++) {
+            config.pools.recipe.push(recipe);
+        }
+    });
+}
+function getRandomCardFromPool_removing() {
+    let randomIndex = Math.floor(Math.random() * config.pools.card.length);
+    const newCard = config.pools.card.splice(randomIndex, 1)[0];
+    if ((newCard == undefined || newCard == null) && config["randomizeOnEmptyPool"] === true) {
+        return Object.keys(config.registry.cards)[Math.floor(Math.random() * config.registry.cards.length)];
+    } else {
+        return newCard
+    }
+}
+function getRandomRecipeFromPool_removing() {
+    let randomIndex = Math.floor(Math.random() * config.pools.recipe.length);
+    const newRecipe = config.pools.recipe.splice(randomIndex, 1)[0];
+    if ((newRecipe == undefined || newRecipe == null) && config["randomizeOnEmptyPool"] === true) {
+        return Object.keys(config.registry.recipes)[Math.floor(Math.random() * config.registry.recipes.length)];
+    } else {
+        return newRecipe
+    }
+}
+
 // Function to start the broadcast loop
 function startBroadcastLoop() {
     if (tickIntervalObj) return; // Avoid starting multiple intervals
@@ -464,6 +568,7 @@ function startBroadcastLoop() {
     tickIntervalObj = setInterval(() => {
         tick(); // DEFINED AT BOTTOM OF FILE
     }, config["tickRate"]);
+    gameRestartsIndex++;
 }
 
 // Function to stop the broadcast loop
@@ -553,6 +658,11 @@ function handleNewConnection(senderIp,requestedName,wsclient) {
         }
         gameState.data[playerid]["_dox_"] = senderIp;
         gameState.data[playerid]["_wsclient_"] = wsclient;
+        if (gameState.state === "started") {
+            log(`Populated late player ${playerid}!`);
+            randomizeHand(playerid);
+            setRecipeForPlayer(playerid, getRandomRecipeFromPool_removing() );
+        }
         log(`Connected new player. (IP:${senderIp})`, "route",1)
         addLoggedEvent( {"playerJoin": `${playerid}`} );
     }
@@ -560,7 +670,7 @@ function handleNewConnection(senderIp,requestedName,wsclient) {
     else {
         log(`Re-connected existing player. (IP:${senderIp})`, "route",1)
         gameState.data[playerid]["_wsclient_"] = wsclient;
-        addLoggedEvent( {"playerJoin": `${playerid}`} );
+        addLoggedEvent( {"playerReConnect": `${playerid}`} );
     }
     gameState.data[playerid]["status"] = "active";
     // Return ID
@@ -577,6 +687,9 @@ function handleDisconnectionByPlayerId(senderIp,playerid,mode="remove") {
             addLoggedEvent( {"playerInactivate": `${playerid}`} );
             log(`${senderIp} inactivated.`, "route",1);
         } else {
+            gameState.data[playerid]["hand"].forEach( (card) => {
+                config.pools.card.push(card);
+            });
             delete gameState.data[playerid];
             addLoggedEvent( {"playerDisconnect": `${playerid}`} );
             log(`Removed ${senderIp}, disconnected.`, "netio",1);
@@ -605,6 +718,9 @@ function handleDisconnectionByClient(senderIp,client,mode="remove") {
             addLoggedEvent( {"playerInactivate": `${knownPlayerid}`} );
             log(`${senderIp} inactivated. (pid:${knownPlayerid})`, "route",1);
         } else {
+            gameState.data[knownPlayerid]["hand"].forEach( (card) => {
+                config.pools.card.push(card);
+            });
             delete gameState.data[knownPlayerid];
             addLoggedEvent( {"playerDisconnect": `${knownPlayerid}`} );
             log(`Removed ${senderIp}, disconnected. (pid:${knownPlayerid})`, "netio",1);
@@ -681,7 +797,12 @@ wss.on('connection', (ws, req) => {
             //// Select event
             else if (parsedData.event === 'select') {
                 if (!isNaN(parsedData.choiceIndex) && parsedData.choiceIndex.trim() !== '') {
-                    handleSelection(parsedData); // DEFINED AT BOTTOM OF FILE
+                    console.log(parsedData.choiceId)
+                    if (!isNaN(parsedData.choiceId) && parsedData.choiceId.trim() !== '') {
+                        handleSelection(parsedData); // DEFINED AT BOTTOM OF FILE
+                    } else {
+                        ws.send(JSON.stringify({ error: 'Invalid choiceId' }));
+                    }
                 } else {
                     ws.send(JSON.stringify({ error: 'Invalid choiceIndex' }));
                 }
@@ -772,9 +893,56 @@ if (parts[parts.length - 1].includes(":")) {
 
 // [Main GameHost Logic Bellow]
 
+function getNextPlayer(playerId) {
+    const players = Object.keys(gameState["data"]);
+    currentPlayerIndex = players.indexOf(playerId);
+    nextPlayerIndex = currentPlayerIndex + 1;
+    if(nextPlayerIndex === players.length){
+        nextPlayerIndex = 0;
+    }
+    return players[nextPlayerIndex];
+}
+
+function getNextActivePlayer(playerId) {
+    let nextPlayer = getNextPlayer(playerId);
+    if (gameState.data[nextPlayer].status === "inactive") {
+        log(`Skipped turn for player ${nextPlayer} because of inactivity!`)
+        nextPlayer = getNextActivePlayer(nextPlayer);
+    }
+    return nextPlayer;
+}
+
+function getFirstActivePlayer(index) {
+    let nextPlayer = Object.keys(gameState["data"])[index];
+    if (gameState.data[nextPlayer].status === "inactive") {
+        log(`Skipped turn for player ${nextPlayer} because of inactivity!`)
+        nextPlayer = getNextActivePlayer(nextPlayer);
+    }
+    return nextPlayer;
+}
+
+function advanceTurn() {
+    if (gameState.turn !== null) {
+        gameState.turn = getNextActivePlayer(gameState.turn);
+    } else {
+        gameState.turn = getFirstActivePlayer(0);
+    }
+    postChoice(
+        gameState.turn,
+        gameState.data[gameState.turn]["hand"],
+        false,
+        (parsedData,scopedData) => {},
+        {},
+        context = "onturn.main"
+    )
+    log(`Advanced turn to ${gameState.turn}!`)
+}
+
 // Function to reset the gameState
 function resetGameState() {
     gameState = { ...defaultGameState };
+    generateCardPool();
+    generateRecipePool();
 }
 
 // Function to post a choice of cards (cards will be sent to client)
@@ -840,6 +1008,11 @@ function delistChoice(choiceid) {
 
 // Function to set the recipe for a player
 function setRecipeForPlayer(playerId,recipeId) {
+    if (gameState.data[playerId].tags) {
+        if (gameState.data[playerId].tags.includes("STATIC_RECIPE")) {
+            return;
+        }
+    }
     gameState.data[playerId]["recipe"] = {...config["playerRecipe_template"]};
     gameState.data[playerId]["recipe"]["id"] = recipeId;
 }
@@ -852,28 +1025,36 @@ function completeRecipeForPlayer(playerId) {
     if (gameState.data[playerId]["recipe"]) {
         gameState.data[playerId]["recipe"]["completed"] = true;
         gameState.data[playerId]["points"] += config.registry["recipes"][ gameState.data[playerId]["recipe"]["id"] ]["points"];
+        // Add back to pool
+        config.pools.recipe.push(gameState.data[playerId]["recipe"]["id"])
+        // Set new random
+        setRecipeForPlayer(playerId, getRandomRecipeFromPool_removing() );
     }
 }
 // Function to lockin a card for a recipe
-// returns if recipe got autocompleted or not.
+// returns [<wasSuccessfull>,<wasAutoCompleted>].
 function lockinCardForPlayerRecipe(playerId,cardId,autoComplete=true) {
     if (gameState.data[playerId]["recipe"]) {
-        gameState.data[playerId]["recipe"]["locker"].push(cardId);
-        if (autoComplete === true) {
-            missing = false;
-            config.registry["recipes"][ gameState.data[playerId]["recipe"]["id"] ]["ingredients"].forEach( (ingredient) => {
-                if (!gameState.data[playerId]["recipe"]["locker"].includes(ingredient)) {
-                    if (missing !== true) {
-                        missing = true;
+        if (config.registry.recipes[gameState.data[playerId]["recipe"]["id"] ]["ingredients"].includes(Number(cardId))) {
+            gameState.data[playerId]["recipe"]["locker"].push(cardId);
+            if (autoComplete === true) {
+                missing = false;
+                config.registry["recipes"][ gameState.data[playerId]["recipe"]["id"] ]["ingredients"].forEach( (ingredient) => {
+                    if (!gameState.data[playerId]["recipe"]["locker"].includes(ingredient)) {
+                        if (missing !== true) {
+                            missing = true;
+                        }
                     }
+                });
+                if (missing === false) {
+                    completeRecipeForPlayer(playerId);
                 }
-            });
-            if (missing === false) {
-                completeRecipeForPlayer(playerId);
+                return [true,!missing];
+            } else {
+                return [true,false];
             }
-            return !missing;
         } else {
-            return false;
+            return [false,false];
         }
     }
 }
@@ -883,33 +1064,56 @@ function removeCardFromHand(playerId,cardId) {
     let index = gameState.data[playerId]["hand"].indexOf(cardId);
     if (index !== -1) {
         // Remove the value at that index
-        gameState.data[playerId]["hand"].splice(index, 1);
+        removedCard = gameState.data[playerId]["hand"].splice(index, 1)[0];
+        log(`Removed card ${removedCard} to ${playerId}'s hand!`);
+        // Add back into pool
+        config.pools.card.push(removedCard);
     }
 }
 
+// Function to add new card from the pool to a player
+function addNewCardToHand(playerId) {
+    const newCard = getRandomCardFromPool_removing();
+    log(`Added card ${newCard} to ${playerId}'s hand!`);
+    gameState.data[playerId]["hand"].push( newCard );
+}
 
 // Function to randomize a hand
 function randomizeHand(playerId) {
-    const keys = Object.keys(obj);
     const hand = [
-        keys[Math.floor(Math.random() * keys.length)],
-        keys[Math.floor(Math.random() * keys.length)],
-        keys[Math.floor(Math.random() * keys.length)]
+        getRandomCardFromPool_removing(),
+        getRandomCardFromPool_removing(),
+        getRandomCardFromPool_removing()
     ];
+    if (gameState.data[playerId].tags) {
+        if (gameState.data[playerId].tags.includes("STATIC_HAND")) {
+            return;
+        }
+    }
     gameState.data[playerId]["hand"] = hand;
 }
 
 
 // Main tick function
 function tick() {
-    gameRestartsIndex++;
     broadcastGameState();
 }
 
 // Function called apon the start event
 function handleStart(skipBroadcast=false) {
-    log("Started game!");
+    // Reset
+    resetGameState();
+    // Populate players
+    Object.keys(gameState.data).forEach( (player) => {
+        randomizeHand(player);
+        setRecipeForPlayer(player, getRandomRecipeFromPool_removing() );
+    });
+    // Set state
     gameState.state = "started";
+    log("Started game!");
+    // Advance
+    advanceTurn();
+    // Broadcast
     if (skipBroadcast !== true) {
         broadcastGameState();
     }
@@ -942,10 +1146,12 @@ function handleSelection(parsedData,skipBroadcast=false) {
     // Set cardIndex in parsedData
     if (!isNaN(parsedData.cardId) && parsedData.cardId.trim() !== '') {
     } else {
-        if (choiceObj.hidden == true || choiceObj.cards.length < 1) {
+        if (choiceObj.hidden === true || choiceObj.cards.length < 1) {
             parsedData.cardId = -1;
         } else {
-            parsedData.cardId = choiceObj.cards[parsedData.choiceIndex];
+            if (choiceObj.cards.length > 0) {
+                parsedData.cardId = choiceObj.cards[parsedData.choiceIndex];
+            }
         }
     }
     // DEBUG
@@ -960,16 +1166,25 @@ function handleSelection(parsedData,skipBroadcast=false) {
             config["selectEventCauses"][parsedData.cause](parsedData);
         }
     } else {
+        foundFunc = false;
         for (const [key,value] of Object.entries(gameState.choices)) {
             if (value.id === parsedData.choiceId) {
                 if (gameState.choices[key].onFinished) {
+                    foundFunc = true;
                     gameState.choices[key].onFinished(parsedData,gameState.choices[key].onFinishedData);
                 }
                 break;
             }
         }
+        if (foundFunc === false) {
+            // Remove old and add new card
+            removeCardFromHand(parsedData.sender,parsedData.cardId);
+            addNewCardToHand(parsedData.sender);
+            // Advance
+            advanceTurn();
+        }
     }
-    // Broadcast)
+    // Broadcast
     if (skipBroadcast !== true) {
         broadcastGameState();
     }
@@ -1006,9 +1221,16 @@ function handleAction(parsedData) {
     const affectedPlayers = keyfilterlist_multiple( Object.keys(gameState["data"]), parsedData.affects );
     log(`Got action event with cardId '${parsedData.cardId}' with sender '${parsedData.sender}' which tagets [${parsedData.affects}] affecting [${affectedPlayers}]!`);
     
-    if (Object.keys(config.registry["actions"]).includes(parsedData.cardId)) {
-        config.registry["actions"][parsedData.cardId]["action"](parsedData,affectedPlayers);
+    if (Object.keys(config.registry.cards).includes(parsedData.cardId)) {
+        if (config.registry.cards[parsedData.cardId].type === "action") {
+            config.registry.cards[parsedData.cardId]["action"](parsedData,affectedPlayers);
+        }
     }
+    // Remove old and add new card
+    removeCardFromHand(parsedData.sender,parsedData.cardId);
+    addNewCardToHand(parsedData.sender);
+    // Advance & Broadcast (Advance does not send any update)
+    advanceTurn();
     broadcastGameState();
 }
 
@@ -1024,9 +1246,29 @@ function handleLockIn(parsedData) {
     // ´parsedData.cardId´ should be the `cardId` requested to lockin.
     //
     log(`Got lockin event with cardId '${parsedData.cardId}' with sender '${parsedData.sender}'!`);
-    lockinCardForPlayerRecipe(parsedData.sender,parsedData.cardId);
-    removeCardFromHand(playerId,parsedData.cardId);
-    broadcastGameState();
+    const [lockin_wasSuccessfull,lockin_didAutoComplete] = lockinCardForPlayerRecipe(parsedData.sender,parsedData.cardId);
+    // If was not successfull
+    if (lockin_wasSuccessfull === false) {
+        log(`Failed to lockin card, not in recipe. ${parsedData.cardId} not-in [${config.registry["recipes"][ gameState.data[parsedData.sender]["recipe"]["id"] ]["ingredients"]}]`,"error",1);
+        postChoice(
+            gameState.turn,
+            gameState.data[gameState.turn]["hand"],
+            false,
+            (parsedData,scopedData) => {
+                handleLockIn(parsedData);
+            },
+            {},
+            context = "onturn.resend"
+        )
+    // Otherwise
+    } else {
+        // Remove old and add new card
+        removeCardFromHand(parsedData.sender,parsedData.cardId);
+        addNewCardToHand(parsedData.sender);
+        // Advance & Broadcast (Advance does not send any update)
+        advanceTurn();
+        broadcastGameState();
+    }
 }
 
 // Function to handle a steal request by the client
@@ -1059,46 +1301,32 @@ function handleSteal(parsedData) {
     }
     const affectedPlayers = keyfilterlist_multiple( Object.keys(gameState["data"]), parsedData.affects );
     log(`Got steal event with cardId '${parsedData.cardId}' with sender '${parsedData.sender}' which tagets [${parsedData.affects}] affecting [${affectedPlayers}]!`);
-    // Select from own hand card to putdown
-    postChoice(
+    const target = affectedPlayers[0];
+    // "put card on table"
+    removeCardFromHand(parsedData.sender,parsedData.cardId);
+    // Select from targets hand (hidden)
+    postChoiceAmnt(
         parsedData.sender,
-        gameState.data[parsedData.sender]["hand"],
-        false,
+        gameState.data[target]["hand"].length,
         // Once card has been selected
         (selectEvent_parsedData,data) => {
-            const selectedFromSenderHand = selectEvent_parsedData.cardId;
-            const target = data.affects;
-            // "put card on table"
-            removeCardFromHand(data.sender,selectedFromSenderHand);
-            // Select from targets hand (hidden)
-            postChoiceAmnt(
-                data.sender,
-                gameState.data[target]["hand"].length,
-                // Once card has been selected
-                (selectEvent_parsedData,data) => {
-                    const selectedFromTargetHand = selectEvent_parsedData.cardId;
-                    // "give card to sender"
-                    removeCardFromHand(data.target,selectedFromTargetHand);
-                    gameState.data[data.sender]["hand"].push(selectedFromTargetHand);
-                    // "take card up from table"
-                    gameState.data[data.target]["hand"].push(data.selectedFromSenderHand);
-                    // update
-                    broadcastGameState();
-                },
-                {
-                    "sender": data.sender,
-                    "target": target,
-                    "selectedFromSenderHand": selectedFromSenderHand
-                },
-                context = "steal.takefromtarget"
-            )
+            const selectedFromTargetHand = gameState.data[data.target]["hand"][selectEvent_parsedData.choiceIndex];
+            // "give card to sender"
+            removeCardFromHand(data.target,selectedFromTargetHand);
+            gameState.data[data.sender]["hand"].push(selectedFromTargetHand);
+            // "take card up from table"
+            gameState.data[data.target]["hand"].push(data.selectedFromSenderHand);
+            // Advance & Broadcast (Advance does not send any update)
+            advanceTurn();
+            broadcastGameState();
         },
         {
             "sender": parsedData.sender,
-            "affects": affectedPlayers[0]
+            "target": target,
+            "selectedFromSenderHand": parsedData.cardId
         },
-        context = "steal.putdown"
-    );
+        context = "steal.takefromtarget"
+    )
 }
 
 // Function to handle a gamble request by the client
@@ -1130,5 +1358,10 @@ function handleGamble(parsedData) {
     
 
     log(`Got gamble event with cardId '${parsedData.cardId}' with sender '${parsedData.sender}'!`);
+    // Remove old and add new card
+    removeCardFromHand(parsedData.sender,parsedData.cardId);
+    addNewCardToHand(parsedData.sender);
+    // Advance & Broadcast (Advance does not send any update)
+    advanceTurn();
     broadcastGameState();
 }

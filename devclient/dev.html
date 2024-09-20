@@ -23,20 +23,22 @@
       font-family: monospace; /* Use a monospace font for code */
       border: 1px solid #ddd; /* Add a border for better visibility */
       padding: 10px; /* Add padding for readability */
+      margin: 0;
     }
     button {
       margin-top: 10px;
       margin-right: 5px;
     }
     #playerList {
-      margin-top: 20px;
+      padding-left: 20px;
     }
     #playerList ul {
-      list-style-type: none; /* Remove default list styling */
-      padding: 0; /* Remove default padding */
+      list-style-type: circle;
+      padding: 0;
+      margin-left: 18px;
     }
     #playerList li {
-      margin-bottom: 5px; /* Add space between list items */
+      margin-bottom: 5px;
     }
     #stateBox {
       margin-top: 20px;
@@ -94,14 +96,33 @@
     #clientLog {
       width: 80%;
     }
+    .parentpanel {
+      width: 100%
+    }
+    .childpanel {
+      min-width: 50%;
+      width: fit-content;
+    }
   </style>
 </head>
 <body>
   <h1>WebSocket Client</h1>
 
-  <!-- Add a container to display the prettified JSON response -->
-  <label for="response">Last Response: </label>
-  <pre id="response"></pre>
+  <div class="parentpanel hflex">
+    <div class="childpanel vflex">
+      <!-- Add a container to display the prettified JSON response -->
+      <h2>Last Response</h2>
+      <pre id="response"></pre>
+    </div>
+  
+    <!-- Add a section for the player list -->
+    <div id="playerList" class="childpanel">
+      <h2>Player List</h2>
+      <ul id="players"></ul>
+    </div>
+
+  </div>
+
   <div class="hflex">
     <label for="clientLog">Last client log: </label>
     <input type="text" id="clientLog" disabled>
@@ -133,6 +154,11 @@
   <div id="eventsBox" class="vflex">
 
     <div class="hr"></div>
+    <div class="hflex">
+      <label for="event_select_choiceid">Select.ChoiceId: </label>
+      <input type="text" id="event_select_choiceid">
+      <p class="values-comment">#IdOfChoice (REQUIRED)</p>
+    </div>
     <div class="hflex">
       <label for="event_select_choiceindex">Select.ChoiceIndex: </label>
       <input type="text" id="event_select_choiceindex">
@@ -207,15 +233,10 @@
 
   </div>
 
-  <!-- Add a section for the player list -->
-  <div id="playerList">
-    <h2>Player List</h2>
-    <ul id="players"></ul>
-  </div>
-
   <!-- Include highlight.js JS for syntax highlighting -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/highlight.min.js"></script>
   <script>
+    const protocolformat = 3;
     let socket;
     var lastEpoch = null;
 
@@ -265,7 +286,7 @@
         log('Connected to WebSocket server');
 
         // Send a "connect" event without a username
-        const data = { event: 'connect' };
+        const data = { event: 'connect', format: protocolformat };
         const currentUsernameValue = document.getElementById("username").value;
         let reqname = null;
         if (currentUsernameValue != undefined && currentUsernameValue != null && currentUsernameValue !== "") {
@@ -328,17 +349,24 @@
           }
         } catch (error) {
           console.error('Failed to parse JSON:', error);
-          responseContainer.textContent = 'Error parsing JSON data.';
+          responseContainer.innerHTML = '<p style="color:red">Error parsing JSON data.</p>';
+          updatePlayerList({});
         }
       };
 
       // When the connection is closed
       socket.onclose = () => {
+        //responseContainer.innerHTML = formatJSON({"Disconnected": "Websocket.Closed"});
+        responseContainer.innerHTML = '<p style="color:red">Disconnected: Websocket.Closed</p>';
+        updatePlayerList({});
         log('Disconnected from WebSocket server');
       };
 
       // When an error occurs
       socket.onerror = (error) => {
+        //responseContainer.innerHTML = formatJSON({"Disconnected": "Websocket.Error", "Error": error});
+        responseContainer.innerHTML = `<div class="vflex"><p style="color:red">Disconnected: Websocket.Error</p><p style="color:red">${error}</p>`;
+        updatePlayerList({});
         console.error('WebSocket error:', error);
       };
     }
@@ -462,7 +490,8 @@
     document.getElementById('selectButton').addEventListener('click', () => {
       const data = {
         "event": "select",
-        "choiceIndex": document.getElementById('event_select_choiceindex').value
+        "choiceIndex": document.getElementById('event_select_choiceindex').value,
+        "choiceId": document.getElementById('event_select_choiceid').value
       };
       const cause = document.getElementById('event_select_cause').value;
       if (cause && cause !== "") {

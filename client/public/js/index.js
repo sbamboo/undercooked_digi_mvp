@@ -10,117 +10,174 @@ const protocolformat = 3;
 var registry = {
     "cards": {
         0: {
-            "cardName": "Ägg"
+            "type": "card",
+            "cardName": "Ägg",
+            "poolOccurence": 1
         },
         1: {
-            "cardName": "Bär"
+            "type": "card",
+            "cardName": "Bär",
+            "poolOccurence": 1
         },
         3: {
-            "cardName": "Tomat"
+            "type": "card",
+            "cardName": "Tomat",
+            "poolOccurence": 1
         },
         4: {
-            "cardName": "Skål"
+            "type": "card",
+            "cardName": "Skål",
+            "poolOccurence": 1
         },
         5: {
-            "cardName": "Frukt"
+            "type": "card",
+            "cardName": "Frukt",
+            "poolOccurence": 1
         },
         6: {
-            "cardName": "Fisk"
+            "type": "card",
+            "cardName": "Fisk",
+            "poolOccurence": 1
         },
         7: {
-            "cardName": "Nudlar"
+            "type": "card",
+            "cardName": "Nudlar",
+            "poolOccurence": 1
         },
         8: {
-            "cardName": "Broccoli"
+            "type": "card",
+            "cardName": "Broccoli",
+            "poolOccurence": 1
         },
         9: {
-            "cardName": "Rött Kött"
+            "type": "card",
+            "cardName": "Rött Kött",
+            "poolOccurence": 1
         },
         10: {
-            "cardName": "Pasta"
+            "type": "card",
+            "cardName": "Pasta",
+            "poolOccurence": 1
         },
         11: {
-            "cardName": "Sallad"
+            "type": "card",
+            "cardName": "Sallad",
+            "poolOccurence": 1
         },
         12: {
-            "cardName": "Gurka"
+            "type": "card",
+            "cardName": "Gurka",
+            "poolOccurence": 1
         },
         13: {
-            "cardName": "Räkor"
+            "type": "card",
+            "cardName": "Räkor",
+            "poolOccurence": 1
         },
         14: {
-            "cardName": "Fågel Kött"
+            "type": "card",
+            "cardName": "Fågel Kött",
+            "poolOccurence": 1
         },
         15: {
-            "cardName": "Glass"
+            "type": "card",
+            "cardName": "Glass",
+            "poolOccurence": 1
         },
         16: {
-            "cardName": "Potatis"
+            "type": "card",
+            "cardName": "Potatis",
+            "poolOccurence": 1
         },
         17: {
-            "cardName": "Strut"
+            "type": "card",
+            "cardName": "Strut",
+            "poolOccurence": 1
         },
         18: {
-            "cardName": "Grönsaker"
+            "type": "card",
+            "cardName": "Grönsaker",
+            "poolOccurence": 1
         },
         19: {
-            "cardName": "Räkor"
+            "type": "card",
+            "cardName": "Räkor",
+            "poolOccurence": 1
+        },
+
+        20: {
+            "type": "action",
+            "cardName": "Reset",
+            "cardDescription": "Välj en spelare som lägger alla sina kort i botten av korthögen & tar 3 nyad",
+            "action": (parsedData,affectedPlayers) => {},
+            // pls note, occurence is not a weight but the actuall amount in the pool
+            "poolOccurence": 1
+        },
+        21: {
+            "type": "action",
+            "cardName": "Steal Hand",
+            "cardDescription": "Byt hand med en valfri spelare",
+            "action": (parsedData,affectedPlayers) => {},
+            // pls note, occurence is not a weight but the actuall amount in the pool
+            "poolOccurence": 1
+        },
+        22: {
+            "type": "action",
+            "cardName": "Apocalyps",
+            "cardDescription": "Alla lägger sina kort i botten av högen tar 3 nya kort",
+            "action": (parsedData,affectedPlayers) => {},
+            // pls note, occurence is not a weight but the actuall amount in the pool
+            "poolOccurence": 1
         }
     },
     "recipes": {
         0: {
             "recipeName": "Pastasallad",
             "ingredients":[10,11],
-            "points": 1
+            "points": 1,
+            "poolOccurence": 1
         },
         1: {
             "recipeName": "Köttgryta",
             "ingredients":[18,9,4],
-            "points": 2
+            "points": 2,
+            "poolOccurence": 1
         },
         2: {
             "omelett": "Ägg",
             "ingredients":[0],
-            "points": 1
-        },
-        2: {
-            "recipeName": "Glasstrut",
-            "ingredients":[15,17],
-            "points": 1
+            "points": 1,
+            "poolOccurence": 1
         },
         3: {
-            "recipeName": "Carbonara",
-            "ingredients":[10,9,0],
-            "points": 2
+            "recipeName": "Glasstrut",
+            "ingredients":[15,17],
+            "points": 1,
+            "poolOccurence": 1
         },
         4: {
-            "recipeName": "Rä-Rä-Rä-Räksallad",
-            "ingredients":[19,11],
-            "points": 1
+            "recipeName": "Carbonara",
+            "ingredients":[10,9,0],
+            "points": 2,
+            "poolOccurence": 1
         },
         5: {
-            "recipeName": "Köttbullar & Potatismos",
-            "ingredients":[16,9],
-            "points": 1
+            "recipeName": "Rä-Rä-Rä-Räksallad",
+            "ingredients":[19,11],
+            "points": 1,
+            "poolOccurence": 1
         },
         6: {
+            "recipeName": "Köttbullar & Potatismos",
+            "ingredients":[16,9],
+            "points": 1,
+            "poolOccurence": 1
+        },
+        7: {
             "recipeName": "Fruktsallad",
             "ingredients":[5,4],
-            "points": 1
-        }
-    },
-    "actions": {
-        0: {
-            "cardName": "Reset",
-            "cardDescription": "Välj en spelare som lägger alla sina kort i botten av korthögen & tar 3 nyad",
-        },
-        1: {
-            "cardName": "Steal Hand",
-            "cardDescription": "Byt hand med en valfri spelare",
-        },
-        2: {
-            "cardName": "Apocalyps",
-            "cardDescription": "Alla lägger sina kort i botten av högen tar 3 nya kort",
+            "points": 1,
+            "poolOccurence": 1
         }
     }
 }
