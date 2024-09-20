@@ -389,6 +389,12 @@ function sendDisconnectMessage() {
 
 // [Main GameClient Logic Bellow]
 function main(scene,event,parsed) {
+    let playerId;
+    if (parsed._req.recipient) {
+        playerId = parsed._req.recipient;
+    } else {
+        playerId = null;
+    }
     // [PLACEHOLDER FOR GAME RENDERING, START]
     // Display response
     responseContainer.innerHTML = `<code class="json">${JSON.stringify(parsed,null,2)}</code>`;
@@ -397,9 +403,9 @@ function main(scene,event,parsed) {
     // [PLACEHOLDER FOR GAME RENDERING, STOP]
 
     // Identify player
-    if (parsed._req.recipient) {
+    if (playerId !== null) {
         if (parsed.choices.length > 0) {
-            showCardChoice( parsed.choices[parsed._req.recipient], parsed._req.recipient );
+            showCardChoice( parsed.choices[playerId], playerId );
         }
     }
 }
@@ -411,7 +417,7 @@ function showHiddenChoice(amnt) {
 }
 
 // Function to show a visible choice and return index
-function showShownChoice(cards) {
+function showVisibleChoice(cards) {
     console.log(`Got visible choice for ${cards}!`);
     return 0;
 }
@@ -429,7 +435,7 @@ function showCardChoice(choiceObj,playerId) {
                 index = showHiddenChoice(choiceObj.cards.length);
             }
         } else {
-            index = showShownChoice(choiceObj.cards);
+            index = showVisibleChoice(choiceObj.cards);
         }
         // Build, Serialize and Send data.
         const data = {

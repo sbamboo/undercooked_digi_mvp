@@ -19,38 +19,49 @@ let config = {
     "format": 1,
     "port": default_port,
     "host": default_host,
-    "tickRate": default_tickRate,
-    "filterIps": true,
-    "filterPlayerData": true,
-    "startingBroadcastIndex": 0,
-    "unknownRecipientSendMode": "None", // "None" or "All"
-    "disconnectEventHandlerMode": "client", // "Client" or "PlayerId"
-    "keepAliveWsOnDisconnectEvent": false,
-    "resetGameStateOnStop": true,
-    "resetGameStateOnLoopStop": false,
-    "sendJoinAndLeaveEvents": false,
-    "playerIdRetriver": "Incremental", // "Incremental" or "Short" or "UUID"
+    "tickRate": default_tickRate, // How fast the 'tick()' updater function should be called
+    "filterIps": true, // Filter ip's from being sent to client?
+    "filterPlayerData": true, // If a recipient is known should the server filter other players data from being sent to the recipient?
+    "unknownRecipientSendMode": "None", // If the recipient is unknown should we send all players data or none? ("None" or "All")
+    "disconnectEventHandlerMode": "client", // Which identification-techinque should be used when a disconnect event is recieved ("Client" or "PlayerId")
+    "keepAliveWsOnDisconnectEvent": false, // Should the server not close the websocket-connection apon a disconnect event?
+    "resetGameStateOnStop": true, // Should the gameState be reset when the stop-event is recieved and the game is stopped.
+    "resetGameStateOnLoopStop": false, // Should the gameState be reset when 'stopBroadcastLoop' is called, which happends when 0 players are connected?
+    "sendJoinAndLeaveEvents": false, // Should the server add join/leave events to the 'lastEvents' field sent to the clients? Note, theese are only reset when the stop-event is recieved.
+    "playerIdRetriver": "Short", // How should player id's be generated? "Incremental" +1 the amount of players, "UUID" generates a full UUID, "Short" generates a 8-char long UUID. Note, short/uuid should be less likely to asign the same id to diffrent players, but might be harder for the server to keep track of.
+    "includePortInClientIP": false, // Should the port be added to the ip stored for each client? Note, this would allow more then once client per IP, but usualy port numbers aren't persistant across page-refreshes which breaks re-connect.
+    "fuzzyMatchIpByName": true, // Attempts to fix re-connects when ports are present in the client-ip, by matching for the non-port-ip-adress and the requestedName (trimmed of _), should work but can fault if more then one client has the same name, or if a client sets an empty name.
+    "startingBroadcastIndex": 0, // Leave at 0
+    // handShakeInfo is sent at the first update given to a client after it connects, this might for example contain the server-protocol-version.
     "handShakeInfo": {},
+    // gameState is both the template and default values for the game data.
     "gameState": {
         "format": 1,
-        "state": "idle",
-        "turn": null,
-        "data": {},
-        "choices": {},
-        "options": {},
-        "lastEvents": [],
-        "currentEvents": [],
-        "_ws_clients_": 0,
-        "_msg_": "Default gamestate! (2024-09-03)"
+        "state": "idle", // "idle" or "started"
+        "turn": null, // playerid
+        "data": {}, // playerdata mapped to playerid
+        "choices": {}, // choices mapped to playerid
+        "options": {}, // field for additional game-options that the client should be aware of
+        "lastEvents": [], // logs
+        "currentEvents": [], // logs, unused
+        "_ws_clients_": 0, // internal
+        "_msg_": "Default gamestate! (2024-09-03)" // sent on first update after connect.
     },
+    // When a new player joins their data is based of the following template:
     "playerData_template": {
-        "status": "inactive",
-        "name": "player",
-        "hand": [0],
-        "recipe": {},
-        "points": 0,
-        "_dox_": null,
-        "_wsclient_": null
+        "status": "inactive", // "inactive" or "active"
+        "name": "player", // username for a player
+        "hand": [0], // list of cardId
+        "recipe": {}, // the recipies a player has and if they are completed or not.
+        "points": 0, // the game-points a player has
+        "_dox_": null, // internal, used for identifing a player
+        "_wsclient_": null // internal, used for identifing a player
+    },
+    // When a player gets a recipe, the recipie field will contain an instance of this template.
+    "playerRecipe_template": {
+        "id": 0, // the recipeid
+        "locker": [], // cardId's locked into the recipe
+        "completed": false
     },
     // Filters are paths within the gameState that are filtered out in a given scenario,
     // from the data sent to clients.
@@ -71,7 +82,6 @@ let config = {
         "steal": handleSteal,
         "gamble": handleGamble
     },
-
     // Registry
     "registry": {
         "cards": {
@@ -477,10 +487,33 @@ function handleNewConnection(senderIp,requestedName,wsclient) {
                 foundReqName = true;
             }
         }
-        if (value._dox_ == senderIp) {
-            if (foundIP === false) {
-                playerid = key;
-                foundIP = true;
+        // If port is included in the ip and "fuzzyMatchIpByName" is enabled match username and base-ip instead of ip+port
+        if (config["includePortInClientIP"] === true && config["fuzzyMatchIpByName"] === true) {
+            let senderIp_base = null;
+            let storedIp_base = null;
+            if (senderIp.includes(":")) {
+                senderIp_base = senderIp.split(":")[0];
+            } else {
+                senderIp_base = senderIp;
+            }
+            if (value._dox_.includes(":")) {
+                storedIp_base = value._dox_.split(":")[0];
+            } else {
+                storedIp_base = value._dox_;
+            }
+            log(`Fuzzy matching ip with name ${requestedName}/${requestedName.replace(/_+$/, '')}?=${value.name}, ${senderIp_base}?=${storedIp_base}`);
+            if (senderIp_base === storedIp_base && (requestedName === value.name || requestedName.replace(/_+$/, '') === value.name)) {
+                if (foundIP === false) {
+                    playerid = key;
+                    foundIP = true;
+                }
+            }
+        } else {
+            if (value._dox_ == senderIp) {
+                if (foundIP === false) {
+                    playerid = key;
+                    foundIP = true;
+                }
             }
         }
     }
@@ -506,7 +539,7 @@ function handleNewConnection(senderIp,requestedName,wsclient) {
     }
     // Else just set status
     else {
-        log(`Re-connected new player. (IP:${senderIp})`, "route",1)
+        log(`Re-connected existing player. (IP:${senderIp})`, "route",1)
         gameState.data[playerid]["_wsclient_"] = wsclient;
         addLoggedEvent( {"playerJoin": `${playerid}`} );
     }
@@ -565,7 +598,12 @@ function handleDisconnectionByClient(senderIp,client,mode="remove") {
 
 // [Websocket Setup]
 wss.on('connection', (ws, req) => {
-    const senderIp = req.socket.remoteAddress+":"+req.socket.remotePort;
+    let senderIp;
+    if (config["includePortInClientIP"] === true) {
+        senderIp = req.socket.remoteAddress+":"+req.socket.remotePort;
+    } else {
+        senderIp = req.socket.remoteAddress;
+    }
     log(`New connection from IP: ${senderIp}`, "netio",1);
 
     gameState._ws_clients_++;
@@ -774,6 +812,52 @@ function delistChoice(choiceid) {
     }
     return null;
 }
+
+// Function to set the recipe for a player
+function setRecipeForPlayer(playerId,recipeId) {
+    gameState.data[playerId]["recipe"] = {...config["playerRecipe_template"]};
+    gameState.data[playerId]["recipe"]["id"] = recipeId;
+}
+// Function to get the recipe for a player
+function getRecipeForPlayer(playerId) {
+    return gameState.data[playerId]["recipe"];
+}
+// Function to complete a recipe and yeild the points to the player
+function completeRecipeForPlayer(playerId) {
+    gameState.data[playerId]["recipe"]["completed"] = true;
+    gameState.data[playerId]["points"] += config.registry["recipes"][ gameState.data[playerId]["recipe"]["id"] ]["points"];
+}
+// Function to lockin a card for a recipe
+// returns if recipe got autocompleted or not.
+function lockinCardForPlayerRecipe(playerId,cardId,autoComplete=true) {
+    gameState.data[playerId]["recipe"]["locker"].push(cardId);
+    if (autoComplete === true) {
+        missing = false;
+        config.registry["recipes"][ gameState.data[playerId]["recipe"]["id"] ]["ingredients"].forEach( (ingredient) => {
+            if (!gameState.data[playerId]["recipe"]["locker"].includes(ingredient)) {
+                if (missing !== true) {
+                    missing = true;
+                }
+            }
+        });
+        if (missing === false) {
+            completeRecipeForPlayer(playerId);
+        }
+        return !missing;
+    } else {
+        return false;
+    }
+}
+
+// Function to remove a card from playerhand
+function removeCardFromHand(playerId,cardId) {
+    let index = gameState.data[playerId]["hand"].indexOf(cardId);
+    if (index !== -1) {
+        // Remove the value at that index
+        gameState.data[playerId]["hand"].splice(index, 1);
+    }
+}
+
 
 // Main tick function
 function tick() {
