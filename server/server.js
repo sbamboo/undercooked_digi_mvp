@@ -189,14 +189,17 @@ let config = {
             0: {
                 "cardName": "Reset",
                 "cardDescription": "Välj en spelare som lägger alla sina kort i botten av korthögen & tar 3 nyad",
+                "action": (parsedData) => {}
             },
             1: {
                 "cardName": "Steal Hand",
                 "cardDescription": "Byt hand med en valfri spelare",
+                "action": (parsedData) => {}
             },
             2: {
                 "cardName": "Apocalyps",
                 "cardDescription": "Alla lägger sina kort i botten av högen tar 3 nya kort",
+                "action": (parsedData) => {}
             }
         }
     }
