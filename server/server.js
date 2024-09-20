@@ -191,7 +191,8 @@ let config = {
                 "cardDescription": "Välj en spelare som lägger alla sina kort i botten av korthögen & tar 3 nyad",
                 "action": (parsedData,affectedPlayers) => {
                     affectedPlayers.forEach( (player) => {
-                        gameState["data"][player]["hand"] = []
+                        gameState["data"][player]["hand"] = [];
+                        randomizeHand(player);
                     });
                 }
             },
@@ -207,7 +208,9 @@ let config = {
             2: {
                 "cardName": "Apocalyps",
                 "cardDescription": "Alla lägger sina kort i botten av högen tar 3 nya kort",
-                "action": (parsedData,affectedPlayers) => {}
+                "action": (parsedData,affectedPlayers) => {
+                    
+                }
             }
         }
     }
@@ -872,7 +875,13 @@ function removeCardFromHand(playerId,cardId) {
 
 // Function to randomize a hand
 function randomizeHand(playerId) {
-    
+    const keys = Object.keys(obj);
+    const hand = [
+        keys[Math.floor(Math.random() * keys.length)],
+        keys[Math.floor(Math.random() * keys.length)],
+        keys[Math.floor(Math.random() * keys.length)]
+    ];
+    gameState.data[playerId]["hand"] = hand;
 }
 
 
@@ -976,6 +985,7 @@ function handleAction(parsedData) {
     if (Object.keys(config.registry["actions"]).includes(parsedData.cardId)) {
         config.registry["actions"][parsedData.cardId]["action"](parsedData,affectedPlayers);
     }
+    broadcastGameState();
 }
 
 // Function to handle a LockIn request by the client
@@ -992,6 +1002,7 @@ function handleLockIn(parsedData) {
     log(`Got lockin event with cardId '${parsedData.cardId}' with sender '${parsedData.sender}'!`);
     lockinCardForPlayerRecipe(parsedData.sender,parsedData.cardId);
     removeCardFromHand(playerId,parsedData.cardId);
+    broadcastGameState();
 }
 
 // Function to handle a steal request by the client
@@ -1006,6 +1017,7 @@ function handleSteal(parsedData) {
     // ´parsedData.cardId´ should be the `cardId` placed on the "table" by the player.
     //
     log(`Got steal event with cardId '${parsedData.cardId}' with sender '${parsedData.sender}'!`);
+
 }
 
 // Function to handle a gamble request by the client
