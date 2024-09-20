@@ -13,6 +13,7 @@ const configFile = './config.json';
 // Imports
 const WebSocket = require('ws');
 const fs = require('fs');
+const { nextTick } = require('process');
 
 // Setup default deffinitions
 let config = {
@@ -189,17 +190,31 @@ let config = {
             0: {
                 "cardName": "Reset",
                 "cardDescription": "Välj en spelare som lägger alla sina kort i botten av korthögen & tar 3 nyad",
-                "action": (parsedData) => {}
+                "action": (parsedData,affectedPlayers) => {
+                    affectedPlayers.forEach( (player) => {
+                        gameState["data"][player]["hand"] = [];
+                        randomizeHand(player);
+                    });
+                }
             },
             1: {
                 "cardName": "Steal Hand",
                 "cardDescription": "Byt hand med en valfri spelare",
-                "action": (parsedData) => {}
+                "action": (parsedData,affectedPlayers) => {
+                    oldhand = [...gameState["data"][parsedData.sender]["hand"]]
+                    gameState["data"][parsedData.sender]["hand"] = gameState["data"][affectedPlayers[0]]["hand"]
+                    gameState["data"][affectedPlayers[0]]["hand"] = oldhand
+                }
             },
             2: {
                 "cardName": "Apocalyps",
                 "cardDescription": "Alla lägger sina kort i botten av högen tar 3 nya kort",
-                "action": (parsedData) => {}
+                "action": (parsedData,affectedPlayers) => {
+                    affectedPlayers.forEach( (player) => {
+                        gameState["data"][player]["hand"] = [];
+                        randomizeHand(player);
+                    });
+                }
             }
         }
     }
@@ -764,7 +779,7 @@ function resetGameState() {
 // Function to post a choice of cards (cards will be sent to client)
 // Returns the playerid and the choiceid as a list. => [playerid,choiceid]
 // Note! This function does not broadcast and `posted` will be index of last broadcast!
-function postChoice(playerid,listOfCardIds,hidden=false) {
+function postChoice(playerid,listOfCardIds,hidden=false,onFinished=null) {
     const timestamp = Date.now();
     const id = timestamp.toString();
     gameState["choices"][playerid] = {
@@ -773,14 +788,15 @@ function postChoice(playerid,listOfCardIds,hidden=false) {
         "status": "waiting",
         "cards": listOfCardIds,
         "hidden": hidden,
-        "cardAmnt": null
+        "cardAmnt": null,
+        "onFinished": onFinished
     };
     return [playerid,id];
 }
 // Function to post a choice of cards (same as postChoice but just takes an amount to not send cards to client)
 // also returns a list of [playerid,choiceid]
 // Note! This function does not broadcast and `posted` will be index of last broadcast!
-function postChoiceAmnt(playerid,amntOfCards) {
+function postChoiceAmnt(playerid,amntOfCards,onFinished=null) {
     const timestamp = Date.now();
     const id = timestamp.toString();
     gameState["choices"][playerid] = {
@@ -789,7 +805,8 @@ function postChoiceAmnt(playerid,amntOfCards) {
         "status": "waiting",
         "cards": [],
         "hidden": true,
-        "cardAmnt": amntOfCards
+        "cardAmnt": amntOfCards,
+        "onFinished": onFinished
     };
     return [playerid,id];
 }
@@ -862,6 +879,18 @@ function removeCardFromHand(playerId,cardId) {
 }
 
 
+// Function to randomize a hand
+function randomizeHand(playerId) {
+    const keys = Object.keys(obj);
+    const hand = [
+        keys[Math.floor(Math.random() * keys.length)],
+        keys[Math.floor(Math.random() * keys.length)],
+        keys[Math.floor(Math.random() * keys.length)]
+    ];
+    gameState.data[playerId]["hand"] = hand;
+}
+
+
 // Main tick function
 function tick() {
     gameRestartsIndex++;
@@ -921,8 +950,17 @@ function handleSelection(parsedData,skipBroadcast=false) {
         if (Object.keys(config["selectEventCauses"]).includes(parsedData.cause)) {
             config["selectEventCauses"][parsedData.cause](parsedData);
         }
+    } else {
+        for (const [key,value] of Object.entries(gameState.choices)) {
+            if (value.id === parsedData.choiceId) {
+                if (gameState.choices[key].onFinished) {
+                    gameState.choices[key].onFinished(parsedData);
+                }
+                break;
+            }
+        }
     }
-    // Broadcast
+    // Broadcast)
     if (skipBroadcast !== true) {
         broadcastGameState();
     }
@@ -958,6 +996,11 @@ function handleAction(parsedData) {
     }
     const affectedPlayers = keyfilterlist_multiple( Object.keys(gameState["data"]), parsedData.affects );
     log(`Got action event with cardId '${parsedData.cardId}' with sender '${parsedData.sender}' which tagets [${parsedData.affects}] affecting [${affectedPlayers}]!`);
+    
+    if (Object.keys(config.registry["actions"]).includes(parsedData.cardId)) {
+        config.registry["actions"][parsedData.cardId]["action"](parsedData,affectedPlayers);
+    }
+    broadcastGameState();
 }
 
 // Function to handle a LockIn request by the client
@@ -972,6 +1015,9 @@ function handleLockIn(parsedData) {
     // ´parsedData.cardId´ should be the `cardId` requested to lockin.
     //
     log(`Got lockin event with cardId '${parsedData.cardId}' with sender '${parsedData.sender}'!`);
+    lockinCardForPlayerRecipe(parsedData.sender,parsedData.cardId);
+    removeCardFromHand(playerId,parsedData.cardId);
+    broadcastGameState();
 }
 
 // Function to handle a steal request by the client
@@ -986,6 +1032,7 @@ function handleSteal(parsedData) {
     // ´parsedData.cardId´ should be the `cardId` placed on the "table" by the player.
     //
     log(`Got steal event with cardId '${parsedData.cardId}' with sender '${parsedData.sender}'!`);
+    
 }
 
 // Function to handle a gamble request by the client
@@ -999,5 +1046,23 @@ function handleGamble(parsedData) {
     //
     // (´parsedData.cardId´ should always be `-1` thus does not matter for this function.)
     //
+
+    players = Object.keys(gameState["data"]);
+    currentPlayerIndex = players.indexOf(parsedData.sender);
+    nextPlayerIndex = currentPlayerIndex + 1;
+
+    if(nextPlayerIndex === players.length){
+        nextPlayerIndex = 0;
+    }
+
+    player = gameState["data"][players[currentPlayerIndex]];
+    nextPlayer = gameState["data"][players[nextPlayerIndex]];
+    
+    console.log(nextPlayer);
+    nextPlayerChoiceId = postChoiceAmnt(nextPlayer,3)[1];
+    console.log(player.hand);
+    
+
     log(`Got gamble event with cardId '${parsedData.cardId}' with sender '${parsedData.sender}'!`);
+    broadcastGameState();
 }
